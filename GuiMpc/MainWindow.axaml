@@ -1,0 +1,49 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        Width="300" Height="450"
+        CanResize="False"
+        Closing="Window_OnClosing"
+        x:Class="GuiMpc.MainWindow"
+        Title="GuiMpc"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Opacity="0.8"
+        ExtendClientAreaTitleBarHeightHint="0"
+        SystemDecorations="None"
+
+        >
+    <StackPanel Background="#ff220000" PointerPressed="App_OnPointerPressed">
+        <StackPanel>
+            <Image Name="AlbumArt" Height="200" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform"></Image>
+        </StackPanel>
+        <StackPanel IsEnabled="False">
+            <TextBox FontSize="12" Name="SongTitle" Opacity="0.99" Background="#ff220000" LineHeight="12" Margin="0" MaxLines="1"></TextBox>
+        </StackPanel>
+        <RelativePanel HorizontalAlignment="Center" Margin="10 3">
+            <Button Name="Prev" Height="20" HorizontalAlignment="Left" Click="ButtonPrev" Background="#ff220000">
+                <Image Width="20" Height="20" Source="Assets\prev2.png" Opacity="0.7"></Image>
+            </Button>
+            <Button Name="Stop" Height="20" RelativePanel.RightOf="Prev" Click="ButtonStop" Background="#ff220000">
+                <Image Width="20" Height="20" Source="Assets\stop2.png" Opacity="0.7"></Image>
+            </Button>
+
+            <Button Name="Play" Height="20" RelativePanel.RightOf="Stop" Click="ButtonPlay" Background="#ff220000">
+                <Image Width="20" Height="20" Source="Assets\play2.png" Opacity="0.7"></Image>
+            </Button>
+            <Button Name="Pause" Height="20" RelativePanel.RightOf="Play" Click="ButtonPause" Background="#ff220000">
+                <Image Width="20" Height="20" Source="Assets\pause2.png" Opacity="0.7"></Image>
+            </Button>
+            <Button Name="Next" Height="20" RelativePanel.RightOf="Pause" Click="ButtonNext" Background="#ff220000">
+                <Image Width="20" Height="20" Source="Assets\next2.png" Opacity="0.7"></Image>
+            </Button>
+        </RelativePanel>
+        <StackPanel HorizontalAlignment="Center" Margin="10 2" Width="280">
+            <Slider Name="SongPosition" ValueChanged="SongPosition_OnValueChanged" Foreground="Green" Background="#88ffffff">
+            </Slider>
+            <Slider Name="Volume"  ValueChanged="Volume_OnValueChanged" Foreground="Green" Background="#88ffffff">
+            </Slider>
+        </StackPanel>
+    </StackPanel>
+</Window>

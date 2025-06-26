@@ -1,0 +1,65 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <OutputType>WinExe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
+        <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Avalonia" Version="11.3.0"/>
+        <PackageReference Include="Avalonia.Desktop" Version="11.3.0"/>
+        <PackageReference Include="Avalonia.Svg" Version="11.3.0" />
+        <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.0"/>
+        <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.0"/>
+        <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+        <PackageReference Include="Avalonia.Diagnostics" Version="11.3.0">
+            <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+            <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+        </PackageReference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\MpdSharp\MpdSharp.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Assets\Play.svg" />
+      <None Remove="Assets\Play.png" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Assets\prev.png" />
+      <None Remove="Assets\stop.png" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Assets\next.png" />
+      <None Remove="Assets\pause.png" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Assets\next2.png" />
+      <AvaloniaXaml Include="Assets\next2.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </AvaloniaXaml>
+      <None Remove="Assets\pause2.png" />
+      <AvaloniaXaml Include="Assets\pause2.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </AvaloniaXaml>
+      <None Remove="Assets\play2.png" />
+      <AvaloniaXaml Include="Assets\play2.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </AvaloniaXaml>
+      <None Remove="Assets\prev2.png" />
+      <AvaloniaXaml Include="Assets\prev2.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </AvaloniaXaml>
+      <None Remove="Assets\stop2.png" />
+      <AvaloniaXaml Include="Assets\stop2.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </AvaloniaXaml>
+    </ItemGroup>
+</Project>
