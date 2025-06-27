@@ -11,39 +11,51 @@
         ExtendClientAreaChromeHints="NoChrome"
         Opacity="0.8"
         ExtendClientAreaTitleBarHeightHint="0"
-        SystemDecorations="None"
-
-        >
+        SystemDecorations="None">
     <StackPanel Background="#ff220000" PointerPressed="App_OnPointerPressed">
+        <Canvas HorizontalAlignment="Right" VerticalAlignment="Top" ZIndex="100">
+            <Button Name="Close" BorderThickness="0" Width="15" Height="15" Click="Close_OnClick" Canvas.Right="0" Canvas.Top="0" Background="#00220000" Opacity="0.4">
+                <Image Width="10" Height="10" Source="Assets/stop2.png"></Image>
+            </Button>
+        </Canvas>
         <StackPanel>
             <Image Name="AlbumArt" Height="200" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform"></Image>
         </StackPanel>
         <StackPanel IsEnabled="False">
-            <TextBox FontSize="12" Name="SongTitle" Opacity="0.99" Background="#ff220000" LineHeight="12" Margin="0" MaxLines="1"></TextBox>
+            <TextBox FontSize="12" BorderThickness="0" Name="SongTitle" Opacity="0.99" Background="#44220000" LineHeight="12" Margin="0" MaxLines="1"></TextBox>
         </StackPanel>
         <RelativePanel HorizontalAlignment="Center" Margin="10 3">
-            <Button Name="Prev" Height="20" HorizontalAlignment="Left" Click="ButtonPrev" Background="#ff220000">
+            <Button Name="Prev" Height="20" BorderThickness="0" HorizontalAlignment="Left" Click="Prev_Clicked" Background="#00220000">
                 <Image Width="20" Height="20" Source="Assets\prev2.png" Opacity="0.7"></Image>
             </Button>
-            <Button Name="Stop" Height="20" RelativePanel.RightOf="Prev" Click="ButtonStop" Background="#ff220000">
+            <Button Name="Stop" Height="20" BorderThickness="0" RelativePanel.RightOf="Prev" Click="Stop_Clicked" Background="#00220000">
                 <Image Width="20" Height="20" Source="Assets\stop2.png" Opacity="0.7"></Image>
             </Button>
 
-            <Button Name="Play" Height="20" RelativePanel.RightOf="Stop" Click="ButtonPlay" Background="#ff220000">
+            <Button Name="Play" Height="20" BorderThickness="0" RelativePanel.RightOf="Stop" Click="Play_Clicked" Background="#00220000">
                 <Image Width="20" Height="20" Source="Assets\play2.png" Opacity="0.7"></Image>
             </Button>
-            <Button Name="Pause" Height="20" RelativePanel.RightOf="Play" Click="ButtonPause" Background="#ff220000">
+            <Button Name="Pause" Height="20" BorderThickness="0" RelativePanel.RightOf="Play" Click="Pause_Clicked" Background="#00220000">
                 <Image Width="20" Height="20" Source="Assets\pause2.png" Opacity="0.7"></Image>
             </Button>
-            <Button Name="Next" Height="20" RelativePanel.RightOf="Pause" Click="ButtonNext" Background="#ff220000">
+            <Button Name="Next" Height="20" BorderThickness="0" RelativePanel.RightOf="Pause" Click="Next_Clicked" Background="#00220000">
                 <Image Width="20" Height="20" Source="Assets\next2.png" Opacity="0.7"></Image>
             </Button>
         </RelativePanel>
-        <StackPanel HorizontalAlignment="Center" Margin="10 2" Width="280">
-            <Slider Name="SongPosition" ValueChanged="SongPosition_OnValueChanged" Foreground="Green" Background="#88ffffff">
+        <StackPanel HorizontalAlignment="Center" Margin="10 0" Width="280">
+            <Slider Name="SongPosition" ValueChanged="SongPosition_OnValueChanged" Foreground="Green" Background="#88ffffff" Height="35" ClipToBounds="False" SmallChange="1" LargeChange="10">
             </Slider>
-            <Slider Name="Volume"  ValueChanged="Volume_OnValueChanged" Foreground="Green" Background="#88ffffff">
+            <Slider Name="Volume" ValueChanged="Volume_OnValueChanged" Foreground="Green" Background="#88ffffff" Height="35" ClipToBounds="False" SmallChange="1" LargeChange="10">
             </Slider>
         </StackPanel>
+        <ListBox SelectionChanged="PlayListContainer_OnSelectionChanged" Name="PlaylistContainer" SelectionMode="Single" Height="130" Margin="5 0" AutoScrollToSelectedItem="True" Background="#44220000" BorderThickness="1" Foreground="#ff000000" BorderBrush="#88220000">
+            <ListBoxItem FontSize="12" BorderThickness="0" Opacity="0.99" Background="#44220000" Margin="0">Test</ListBoxItem>
+            <ListBoxItem FontSize="12" BorderThickness="0" Opacity="0.99" Background="#44220000" Margin="0">Test</ListBoxItem>
+            <ListBoxItem FontSize="12" BorderThickness="0" Opacity="0.99" Background="#44220000" Margin="0">Test</ListBoxItem>
+            <ListBoxItem FontSize="12" BorderThickness="0" Opacity="0.99" Background="#44220000" Margin="0">Test</ListBoxItem>
+            <ListBoxItem FontSize="12" BorderThickness="0" Opacity="0.99" Background="#44220000" Margin="0">Test</ListBoxItem>
+            <ListBoxItem FontSize="12" BorderThickness="0" Opacity="0.99" Background="#44220000" Margin="0">Test</ListBoxItem>
+            <ListBoxItem FontSize="12" BorderThickness="0" Opacity="0.99" Background="#44220000" Margin="0">Test</ListBoxItem>
+        </ListBox >
     </StackPanel>
 </Window>

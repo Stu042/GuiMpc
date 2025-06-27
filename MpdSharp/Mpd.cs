@@ -1,6 +1,4 @@
-﻿using System.Net.Sockets;
-using System.Text;
-using MpdSharp.Models;
+﻿using MpdSharp.Models;
 
 
 namespace MpdSharp;
@@ -337,7 +335,6 @@ public class Mpd {
 	}
 
 	public byte[] AlbumArt(string uri) {
-
 		var response = _coms.SendReceiveBinary($"albumart \"{uri}\"");
 		if (response.IsError) {
 			Console.WriteLine($"Albumart \"{uri}\" 0 returned error: {response.ErrorMessage}");
@@ -345,6 +342,52 @@ public class Mpd {
 		}
 		return response.Binary;
 	}
+
+	public PlayListModel? PlayList() {
+		_coms.Send("playlist");
+		var response = _coms.ReceiveRaw();
+		if (response.IsError) {
+			Console.WriteLine($"PlayList returned error: {response.ErrorMessage}");
+			return null;
+		}
+		var playListModel = new PlayListModel(response.Binary);
+		return playListModel;
+	}
+
+	public CurrentSongModel? PlayListId(int songId) {
+		_coms.Send($"playlistid {songId}");
+		var response = _coms.ReceiveRaw();
+		if (response.IsError) {
+			Console.WriteLine($"PlayListId returned error: {response.ErrorMessage}");
+			return null;
+		}
+		var currentSongModel = new CurrentSongModel(response.Binary);
+		return currentSongModel;
+	}
+
+	public PlayListInfoModel? PlayListInfo(int? songId = null) {
+		_coms.Send(songId != null ? $"playlistinfo {songId}" : $"playlistinfo");
+		var response = _coms.ReceiveRaw();
+		if (response.IsError) {
+			Console.WriteLine($"PlayListId returned error: {response.ErrorMessage}");
+			return null;
+		}
+		var playListInfoModel = new PlayListInfoModel(response.Binary);
+		return playListInfoModel;
+	}
+
+	public PlayListInfoModel? PlayListInfo(int startSongId, int endSongId) {
+		_coms.Send($"playlistinfo {startSongId}:{endSongId}");
+		var response = _coms.ReceiveRaw();
+		if (response.IsError) {
+			Console.WriteLine($"PlayListId returned error: {response.ErrorMessage}");
+			return null;
+		}
+		var playListInfoModel = new PlayListInfoModel(response.Binary);
+		return playListInfoModel;
+	}
+
+
 
 
 
@@ -358,172 +401,4 @@ public class Mpd {
 		var status = new StatusModel(response.Binary);
 		return status;
 	}
-}
-
-
-internal class Coms {
-	private readonly TcpClient _socket;
-	private readonly int _portNo;
-	private readonly string _serverIp;
-	private string? _version;
-	public Coms(string serverIp, int portNo) {
-		_serverIp = serverIp;
-		_portNo = portNo;
-		_socket = new TcpClient(_serverIp, _portNo);
-	}
-
-	internal bool Connect() {
-		if (!_socket.Connected) {
-			Console.WriteLine("Connection failed");
-			return false;
-		}
-		var okResponseBytes = "OK MPD"u8.ToArray();
-		var buffer = new byte[1024];
-		_ = _socket.Client.Receive(buffer, SocketFlags.None);
-		var isOkay = buffer[^okResponseBytes.Length..]
-			.SequenceEqual(okResponseBytes);
-		var response = Encoding.UTF8.GetString(buffer);
-		if (!isOkay) {
-			Console.WriteLine($"Connection failed, invalid response, {response}");
-			return false;
-		}
-		_version = response[7..^1];//"OK MPD 0.24.0"
-		Console.WriteLine($"Connected to MPD version {_version}");
-		return true;
-	}
-	public void Close() {
-		_socket.Close();
-	}
-
-
-	internal void Send(string message) {
-		if (!_socket.Connected) {
-			_socket.Connect(_serverIp, _portNo);
-		}
-		var messageBytes = Encoding.UTF8.GetBytes(message + "\n");
-		try {
-			_ = _socket.Client.Send(messageBytes, SocketFlags.None);
-		} catch (Exception e) {
-			Console.WriteLine(e);
-		}
-		Console.WriteLine($"Socket client sent: {message}");
-	}
-
-	internal BinaryResponseModel ReceiveRaw() {
-		const int bufferSize = 4096;
-		var bob = new List<byte>();
-		try {
-			var buffer = new byte[bufferSize];
-			int bytesRead;
-			do {
-				bytesRead = _socket.Client.Receive(buffer, SocketFlags.None);
-				bob.AddRange(buffer[..bytesRead]);
-			} while (bytesRead == bufferSize);
-		} catch (Exception e) {
-			Console.WriteLine(e);
-			return new BinaryResponseModel {// response was not okay but unable to find error message, return unknown error
-				IsError = true,
-				Binary = bob.ToArray(),
-				FooterSize = 0,
-				ErrorMessage = e.Message
-			};
-		}
-		var response = FormatResponse(bob.ToArray());
-		return response;
-	}
-
-
-	internal class BinaryPartialResponseModel {
-		public required BinaryResponseModel BinaryResponse { get; init; }
-		public int TotalSize { get; init; }
-		public int ChunkSize { get; set; }
-	}
-
-	internal BinaryResponseModel SendReceiveBinary(string request, int curChunkStart = 0) {
-		Send($"{request} {curChunkStart}");
-		var bytes = new List<byte>();
-		var chunk = FormatBinaryChunk();
-		curChunkStart += chunk.BinaryResponse.Binary.Length;
-		if (chunk.BinaryResponse.IsError || curChunkStart >= chunk.TotalSize) {
-			return chunk.BinaryResponse;
-		}
-		bytes.AddRange(chunk.BinaryResponse.Binary);
-		while (!chunk.BinaryResponse.IsError && curChunkStart < chunk.TotalSize) {
-			Send($"{request} {curChunkStart}");
-			chunk = FormatBinaryChunk();
-			bytes.AddRange(chunk.BinaryResponse.Binary);
-			curChunkStart += chunk.BinaryResponse.Binary.Length;
-		}
-		chunk.BinaryResponse.Binary = bytes.ToArray();
-		return chunk.BinaryResponse;
-	}
-	private BinaryPartialResponseModel FormatBinaryChunk() {
-		var initial = ReceiveRaw();
-		if (initial.IsError) {
-			return new BinaryPartialResponseModel {
-				BinaryResponse = initial,
-				TotalSize = 0,
-				ChunkSize = 0
-			};
-		}
-		var headerDict = ResponseHelper.ResponseToDictionary(initial.Binary[..100], 2);
-		var totalSize = headerDict.IntVal("size");
-		var chunkSize = headerDict.IntVal("binary");
-		if (totalSize == null || chunkSize == null) {
-			return new BinaryPartialResponseModel {
-				BinaryResponse = initial,
-				TotalSize = 0,
-				ChunkSize = 0
-			};
-		}
-		var result = new BinaryPartialResponseModel {
-			BinaryResponse = initial,
-			TotalSize = totalSize.Value,
-			ChunkSize = chunkSize.Value
-		};
-		var start = initial.Binary.Length - chunkSize.Value;
-		result.BinaryResponse.Binary = initial.Binary[start..];
-		return result;
-	}
-
-
-	/// <summary>Check for an error, returns error message and length of text at end of response.</summary>
-	private BinaryResponseModel FormatResponse(byte[] response) {
-		var okResponseBytes = "OK\n"u8.ToArray();
-		var isOkay = response[^okResponseBytes.Length..]
-			.SequenceEqual(okResponseBytes);
-		if (isOkay) {
-			var footerSize = int.Min(okResponseBytes.Length + 1, response.Length);
-			return new BinaryResponseModel {
-				IsError = false,
-				Binary = response[..^footerSize],
-				FooterSize = footerSize,
-				ErrorMessage = "OK"
-			};
-		}
-		var errorResponse = "ACK "u8.ToArray();
-		var index = Array.IndexOf(response, errorResponse);
-		if (index >= 0) {// Found error message, return error along with text error message
-			var errorMessBytes = response[(index + errorResponse.Length)..^1];
-			return new BinaryResponseModel {
-				IsError = true,
-				Binary = [],
-				FooterSize = errorMessBytes.Length + errorResponse.Length + 2,
-				ErrorMessage = Encoding.UTF8.GetString(errorMessBytes),
-			};
-		}
-		return new BinaryResponseModel {// response was not okay but unable to find error message, return unknown error
-			IsError = true,
-			Binary = [],
-			FooterSize = 0,
-			ErrorMessage = "Unknown Error"
-		};
-	}
-}
-
-internal class BinaryResponseModel {
-	public bool IsError { get; init; }
-	public int FooterSize { get; init; }
-	public required string ErrorMessage { get; init; }
-	public required byte[] Binary { get; set; }
 }

@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using MpdSharp;
@@ -31,37 +35,68 @@ public partial class MainWindow : Window {
 		};
 		_viewUpdateTimer.Tick += Timer_Tick;
 		_viewUpdateTimer.Start();
+		PopulatePlayList();
 	}
 
 
 	private void App_OnPointerPressed(object? sender, PointerPressedEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
 		BeginMoveDrag(e);
 	}
 
 
 	// Media buttons
-	private void ButtonPlay(object? sender, RoutedEventArgs e) {
+	private void Play_Clicked(object? sender, RoutedEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
 		Debug.WriteLine("Click Play");
 		_mpd.Play();
+
 	}
-	private void ButtonPause(object? sender, RoutedEventArgs e) {
+	private void Pause_Clicked(object? sender, RoutedEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
 		Debug.WriteLine("Click Pause");
 		_mpd.Pause();
 	}
-	private void ButtonStop(object? sender, RoutedEventArgs e) {
+	private void Stop_Clicked(object? sender, RoutedEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
 		Debug.WriteLine("Click Stop");
 		_mpd.Stop();
 	}
-	private void ButtonNext(object? sender, RoutedEventArgs e) {
+	private void Next_Clicked(object? sender, RoutedEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
 		Debug.WriteLine("Click Next");
 		_mpd.Next();
 		UpdateCurrentSong();
 	}
-	private void ButtonPrev(object? sender, RoutedEventArgs e) {
+	private void Prev_Clicked(object? sender, RoutedEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
 		Debug.WriteLine("Click Prev");
 		_mpd.Previous();
 		UpdateCurrentSong();
 	}
+
+	// exit app on clicking exit icon
+	private void Close_OnClick(object? sender, RoutedEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
+		if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lifetime) {
+			lifetime.Shutdown();
+		}
+	}
+
 
 	// Song Position slider
 	private void SongPosition_OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e) {
@@ -79,11 +114,20 @@ public partial class MainWindow : Window {
 	// Volume position slider
 	private void Volume_OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e) {
 		if (_status != null) {
-			var newVol = (int)(Math.Sqrt(e.NewValue) * 10.0);
-			_mpd.SetVolume(newVol);
+			var newVol = VolumeSliderToMpd(e.NewValue);
 			_status.Volume = newVol;
+			_mpd.SetVolume(newVol);
 			Console.WriteLine($"User volume changed to {newVol}");
 		}
+	}
+
+	private static int VolumeSliderToMpd(double sliderVal) {
+		var mpdVol = (int)Math.Round(Math.Sqrt(sliderVal) * 10.0);
+		return mpdVol;
+	}
+	private static double VolumeMpdToSlider(int mpdVal) {
+		var sliderVol = mpdVal * mpdVal / 100.0;
+		return sliderVol;
 	}
 
 
@@ -91,14 +135,61 @@ public partial class MainWindow : Window {
 	private void Timer_Tick(object? sender, EventArgs e) {
 		_status = _mpd.Status();
 		SongPosition.Value = _status.Elapsed * 100.0 / _status.Duration;
-		var volVal = _status.Volume * _status.Volume / 100;
-		if (Volume.Value.CompareTo(volVal) != 0) {
-			Volume.Value = volVal;
+		var volVal = VolumeMpdToSlider(_status.Volume);
+		if (Volume.Value < volVal - 0.5 || Volume.Value > volVal + 0.5) {
 			Console.WriteLine($"volVal: {volVal} Volume.Value: {Volume.Value} _status.Volume: {_status.Volume}");
+			Volume.Value = volVal;
 		}
 		UpdateCurrentSong();
 	}
 
+
+	// Playlist
+	private PlayListInfoModel _playListInfo;
+
+	private void PopulatePlayList() {
+		var mpdPlaylist = _mpd.PlayListInfo();
+		if (mpdPlaylist == null) {
+			return;
+		}
+		_playListInfo = mpdPlaylist;
+		List<ListBoxItem> listBoxItems = [];
+		foreach (var item in _playListInfo.CurrentSongs) {
+			var listItem = new ListBoxItem {
+				Content = CurrentSongFullText(item),
+				Margin = new Thickness(5, 0, 5, 0),
+				Foreground = new SolidColorBrush(new Color(255, 34, 0, 0)),
+				Background = new SolidColorBrush(new Color(255, 34, 255, 0)),
+			};
+			listBoxItems.Add(listItem);
+		}
+		PlaylistContainer.Items.Clear();
+		foreach (var li in listBoxItems) {
+			PlaylistContainer.Items.Add(li);
+		}
+	}
+
+	private void PlayListContainer_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
+		var selectedItem = e.AddedItems[0] as ListBoxItem;
+		var selectedText = selectedItem?.Content as string;
+		if (string.IsNullOrEmpty(selectedText)) {
+			return;
+		}
+		foreach (var item in _playListInfo.CurrentSongs) {
+			if (string.Equals(selectedText, CurrentSongFullText(item), StringComparison.OrdinalIgnoreCase)) {
+				_mpd.Play(item.Pos);
+				break;
+			}
+		}
+	}
+
+
+	private static string CurrentSongFullText(CurrentSongModel currentSong) {
+		return $"{currentSong.Artist} - {currentSong.Album} - {currentSong.Title}";
+	}
 
 
 	private void UpdateCurrentSong() {
@@ -106,7 +197,7 @@ public partial class MainWindow : Window {
 		if (curSong == null) {
 			return;
 		}
-		if (_currentSong?.Id == curSong.Id) {// new song
+		if (_currentSong?.Id == curSong.Id) {// new song?
 			return;
 		}
 		_currentSong = curSong;
@@ -122,7 +213,9 @@ public partial class MainWindow : Window {
 
 
 
+	// clean up when exiting app
 	private void Window_OnClosing(object? sender, WindowClosingEventArgs e) {
+		Console.WriteLine("Closing Window nicely...");
 		_viewUpdateTimer.Stop();
 		_mpd.Close();
 	}

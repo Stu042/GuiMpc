@@ -26,6 +26,61 @@ public class CurrentSongModel {
 		var parsedResponse = ResponseHelper.ResponseToDictionary(response);
 		Parse(parsedResponse);
 	}
+	public CurrentSongModel(StreamReader reader) {
+		string? line;
+		while ((line = reader.ReadLine()) != null) {
+			var parts = line.Split(':', 2);
+			switch (parts[0]
+						.ToLowerInvariant()
+						.Trim()) {
+				case "file":
+					File = parts[1];
+					break;
+				case "lastmodified":
+					LastModified = DateTime.Parse(parts[1]);
+					break;
+				case "added":
+					Added = DateTime.Parse(parts[1]);
+					break;
+				case "format":
+					Format = new FormatModel(parts[1]);
+					break;
+				case "artist":
+					Artist = parts[1];
+					break;
+				case "album":
+					Album = parts[1];
+					break;
+				case "title":
+					Title = parts[1];
+					break;
+				case "genre":
+					Genre = parts[1];
+					break;
+				case "date":
+					Date = parts[1];
+					break;
+				case "track":
+					Track = parts[1];
+					break;
+				case "disc":
+					Disc = parts[1];
+					break;
+				case "time":
+					Time = parts[1];
+					break;
+				case "duration":
+					Duration = double.Parse(parts[1]);
+					break;
+				case "pos":
+					Pos = int.Parse(parts[1]);
+					break;
+				case "id":
+					Id = int.Parse(parts[1]);
+					return;
+			}
+		}
+	}
 
 	private void Parse(CrazyDict crazyDict) {
 		File = crazyDict.Value("file");
