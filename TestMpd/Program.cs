@@ -23,8 +23,26 @@ public class Program {
 			if (origMpd != newMpd) {
 				Console.WriteLine($"Mpd: {origMpd} -> {newMpd}");
 			}
-
 		}
+		Console.WriteLine(CurrentSongFullText("artist", "album", "title"));
+	}
+
+	private static string CurrentSongFullText(string? artist, string? album, string? title) {
+		var hasArtist = !string.IsNullOrEmpty(artist);
+		var hasAlbum = !string.IsNullOrEmpty(album);
+		var hasTitle = !string.IsNullOrEmpty(title);
+		var bob = new List<string>();
+		if (hasArtist) {
+			bob.Add(artist);
+		}
+		if (hasAlbum) {
+			bob.Add(album);
+		}
+		if (hasTitle) {
+			bob.Add(title);
+		}
+		var fullTitle = string.Join(" - ", bob);
+		return fullTitle;
 	}
 
 	private static int VolumeSliderToMpd(double sliderVal) {

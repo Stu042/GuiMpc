@@ -335,13 +335,24 @@ public class Mpd {
 	}
 
 	public byte[] AlbumArt(string uri) {
-		var response = _coms.SendReceiveBinary($"albumart \"{uri}\"");
+		var response = _coms.SendReceiveBinary($"albumart \"{uri}\"", 2);
 		if (response.IsError) {
 			Console.WriteLine($"Albumart \"{uri}\" 0 returned error: {response.ErrorMessage}");
 			return [];
 		}
 		return response.Binary;
 	}
+
+	public byte[] ReadPicture(string uri) {
+		var response = _coms.SendReceiveBinary($"readpicture \"{uri}\"", 3);
+		if (response.IsError) {
+			Console.WriteLine($"ReadPicture \"{uri}\" 0 returned error: {response.ErrorMessage}");
+			return [];
+		}
+		return response.Binary;
+	}
+
+
 
 	public PlayListModel? PlayList() {
 		_coms.Send("playlist");

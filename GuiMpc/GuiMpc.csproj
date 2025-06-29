@@ -6,6 +6,7 @@
         <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+<!--        <ApplicationIcon>Assets\guimpc.ico</ApplicationIcon>-->
     </PropertyGroup>
 
     <ItemGroup>
@@ -22,21 +23,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\MpdSharp\MpdSharp.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="Assets\Play.svg" />
-      <None Remove="Assets\Play.png" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="Assets\prev.png" />
-      <None Remove="Assets\stop.png" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Remove="Assets\next.png" />
-      <None Remove="Assets\pause.png" />
     </ItemGroup>
 
     <ItemGroup>
@@ -60,5 +46,22 @@
       <AvaloniaXaml Include="Assets\stop2.png">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </AvaloniaXaml>
+      <None Update="guimpc.ico">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+      
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="Assets\close.png" />
+      <AvaloniaResource Include="Assets\close.png">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </AvaloniaResource>
+    </ItemGroup>
+
+    <ItemGroup>
+      <AvaloniaResource Include="Assets\guimpc.ico">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </AvaloniaResource>
     </ItemGroup>
 </Project>

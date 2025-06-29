@@ -2,15 +2,20 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
+using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Selection;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Threading;
+using Avalonia.Utilities;
 using MpdSharp;
 using MpdSharp.Models;
 
@@ -22,20 +27,27 @@ public partial class MainWindow : Window {
 	private readonly Mpd _mpd;
 	private StatusModel? _status;
 	private CurrentSongModel? _currentSong;
+	private readonly DispatcherTimer _viewUpdateTimer;
+	private readonly Uri _stopButtonImageUri = new Uri("avares://GuiMpc/Assets/stop2.png");
+	private readonly Uri _playButtonImageUri = new Uri("avares://GuiMpc/Assets/play2.png");
+	private PlayListInfoModel _playListInfo;
 
-	private DispatcherTimer _viewUpdateTimer;
+
 	public MainWindow() {
+#if DEBUG
+		this.AttachDevTools();
+#endif
 		_mpd = new Mpd();
 		_mpd.Connect();
 		InitializeComponent();
-		UpdateCurrentSong();
+		PopulatePlayList();
 		Timer_Tick(this, EventArgs.Empty);
+		UpdateCurrentSong();
 		_viewUpdateTimer = new DispatcherTimer {
 			Interval = TimeSpan.FromSeconds(1)
 		};
 		_viewUpdateTimer.Tick += Timer_Tick;
 		_viewUpdateTimer.Start();
-		PopulatePlayList();
 	}
 
 
@@ -53,8 +65,18 @@ public partial class MainWindow : Window {
 			return;
 		}
 		Debug.WriteLine("Click Play");
-		_mpd.Play();
-
+		if (_status?.State == State.Stop || _status?.State == State.Pause) {
+			if (_mpd.Play()) {
+				var bitmap = new Bitmap(AssetLoader.Open(_stopButtonImageUri));
+				PlayImage.Source = bitmap;
+			}
+		} else {
+			if (_mpd.Stop()) {
+				var bitmap = new Bitmap(AssetLoader.Open(_playButtonImageUri));
+				PlayImage.Source = bitmap;
+				SongPosition.Value = 0;
+			}
+		}
 	}
 	private void Pause_Clicked(object? sender, RoutedEventArgs e) {
 		if (e.Handled) {
@@ -62,13 +84,6 @@ public partial class MainWindow : Window {
 		}
 		Debug.WriteLine("Click Pause");
 		_mpd.Pause();
-	}
-	private void Stop_Clicked(object? sender, RoutedEventArgs e) {
-		if (e.Handled) {
-			return;
-		}
-		Debug.WriteLine("Click Stop");
-		_mpd.Stop();
 	}
 	private void Next_Clicked(object? sender, RoutedEventArgs e) {
 		if (e.Handled) {
@@ -115,10 +130,19 @@ public partial class MainWindow : Window {
 	private void Volume_OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e) {
 		if (_status != null) {
 			var newVol = VolumeSliderToMpd(e.NewValue);
-			_status.Volume = newVol;
 			_mpd.SetVolume(newVol);
 			Console.WriteLine($"User volume changed to {newVol}");
 		}
+	}
+
+	private void Volume_OnPointerWheelChanged(object? sender, PointerWheelEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
+		Volume.Value += e.Delta.Y * 2;
+		var mpdVol = VolumeSliderToMpd(Volume.Value);
+		_mpd.SetVolume(mpdVol);
+		e.Handled = true;
 	}
 
 	private static int VolumeSliderToMpd(double sliderVal) {
@@ -135,9 +159,10 @@ public partial class MainWindow : Window {
 	private void Timer_Tick(object? sender, EventArgs e) {
 		_status = _mpd.Status();
 		SongPosition.Value = _status.Elapsed * 100.0 / _status.Duration;
-		var volVal = VolumeMpdToSlider(_status.Volume);
+		var mpdVolume = _mpd.GetVolume();
+		var volVal = VolumeMpdToSlider(mpdVolume);
 		if (Volume.Value < volVal - 0.5 || Volume.Value > volVal + 0.5) {
-			Console.WriteLine($"volVal: {volVal} Volume.Value: {Volume.Value} _status.Volume: {_status.Volume}");
+			Console.WriteLine($"volVal: {volVal} Volume.Value: {Volume.Value} _status.Volume: {mpdVolume}");
 			Volume.Value = volVal;
 		}
 		UpdateCurrentSong();
@@ -145,8 +170,6 @@ public partial class MainWindow : Window {
 
 
 	// Playlist
-	private PlayListInfoModel _playListInfo;
-
 	private void PopulatePlayList() {
 		var mpdPlaylist = _mpd.PlayListInfo();
 		if (mpdPlaylist == null) {
@@ -154,15 +177,13 @@ public partial class MainWindow : Window {
 		}
 		_playListInfo = mpdPlaylist;
 		List<ListBoxItem> listBoxItems = [];
-		foreach (var item in _playListInfo.CurrentSongs) {
-			var listItem = new ListBoxItem {
-				Content = CurrentSongFullText(item),
-				Margin = new Thickness(5, 0, 5, 0),
-				Foreground = new SolidColorBrush(new Color(255, 34, 0, 0)),
-				Background = new SolidColorBrush(new Color(255, 34, 255, 0)),
-			};
-			listBoxItems.Add(listItem);
-		}
+		var songsListItems = _playListInfo.CurrentSongs.Select(item => new ListBoxItem {
+			Content = CurrentSongFullText(item),
+			Margin = new Thickness(5, 0, 5, 0),
+			Foreground = new SolidColorBrush(new Color(255, 255, 200, 200)),
+			Background = new SolidColorBrush(new Color(44, 34, 0, 0)),
+		});
+		listBoxItems.AddRange(songsListItems);
 		PlaylistContainer.Items.Clear();
 		foreach (var li in listBoxItems) {
 			PlaylistContainer.Items.Add(li);
@@ -179,16 +200,32 @@ public partial class MainWindow : Window {
 			return;
 		}
 		foreach (var item in _playListInfo.CurrentSongs) {
-			if (string.Equals(selectedText, CurrentSongFullText(item), StringComparison.OrdinalIgnoreCase)) {
-				_mpd.Play(item.Pos);
-				break;
+			if (string.Equals(selectedText, CurrentSongFullText(item), StringComparison.Ordinal)) {
+				if (item.Pos != _currentSong?.Pos) {
+					_mpd.Play(item.Pos);
+				}
+				return;
 			}
 		}
 	}
 
 
 	private static string CurrentSongFullText(CurrentSongModel currentSong) {
-		return $"{currentSong.Artist} - {currentSong.Album} - {currentSong.Title}";
+		var hasArtist = !string.IsNullOrEmpty(currentSong.Artist);
+		var hasAlbum = !string.IsNullOrEmpty(currentSong.Album);
+		var hasTitle = !string.IsNullOrEmpty(currentSong.Title);
+		var bob = new List<string>();
+		if (hasArtist) {
+			bob.Add(currentSong.Artist);
+		}
+		if (hasAlbum) {
+			bob.Add(currentSong.Album);
+		}
+		if (hasTitle) {
+			bob.Add(currentSong.Title);
+		}
+		var fullTitle = string.Join(" - ", bob);
+		return fullTitle;
 	}
 
 
@@ -201,10 +238,21 @@ public partial class MainWindow : Window {
 			return;
 		}
 		_currentSong = curSong;
-		SongTitle.Text = $"{curSong.Artist} - {curSong.Album} - {curSong.Title}";
-		var imageBytes = _mpd.AlbumArt(curSong.File);
+		var songTitle = CurrentSongFullText(curSong);
+		SongTitle.Text = songTitle;
+		foreach (var item in PlaylistContainer.Items) {
+			var i = item as ListBoxItem;
+			if (string.Equals(songTitle, i?.Content as string, StringComparison.Ordinal)) {
+				PlaylistContainer.SelectedItem = item;
+				break;
+			}
+		}
+		var imageBytes = _mpd.ReadPicture(curSong.File);
 		if (imageBytes.Length <= 0) {
-			return;
+			imageBytes = _mpd.AlbumArt(curSong.File);
+			if (imageBytes.Length <= 0) {
+				return;
+			}
 		}
 		using var stream = new MemoryStream(imageBytes);
 		var bitmap = new Bitmap(stream);

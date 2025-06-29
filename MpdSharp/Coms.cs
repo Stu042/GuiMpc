@@ -84,10 +84,10 @@ internal class Coms {
 		public int ChunkSize { get; set; }
 	}
 
-	internal BinaryResponseModel SendReceiveBinary(string request, int curChunkStart = 0) {
+	internal BinaryResponseModel SendReceiveBinary(string request, int textLineCount, int curChunkStart = 0) {
 		Send($"{request} {curChunkStart}");
 		var bytes = new List<byte>();
-		var chunk = FormatBinaryChunk();
+		var chunk = ReceiveBinaryChunk(textLineCount);
 		curChunkStart += chunk.BinaryResponse.Binary.Length;
 		if (chunk.BinaryResponse.IsError || curChunkStart >= chunk.TotalSize) {
 			return chunk.BinaryResponse;
@@ -95,14 +95,14 @@ internal class Coms {
 		bytes.AddRange(chunk.BinaryResponse.Binary);
 		while (!chunk.BinaryResponse.IsError && curChunkStart < chunk.TotalSize) {
 			Send($"{request} {curChunkStart}");
-			chunk = FormatBinaryChunk();
+			chunk = ReceiveBinaryChunk(textLineCount);
 			bytes.AddRange(chunk.BinaryResponse.Binary);
 			curChunkStart += chunk.BinaryResponse.Binary.Length;
 		}
 		chunk.BinaryResponse.Binary = bytes.ToArray();
 		return chunk.BinaryResponse;
 	}
-	private BinaryPartialResponseModel FormatBinaryChunk() {
+	private BinaryPartialResponseModel ReceiveBinaryChunk(int textLineCount) {
 		var initial = ReceiveRaw();
 		if (initial.IsError) {
 			return new BinaryPartialResponseModel {
@@ -111,7 +111,8 @@ internal class Coms {
 				ChunkSize = 0
 			};
 		}
-		var headerDict = ResponseHelper.ResponseToDictionary(initial.Binary[..100], 2);
+		var likelyTextEnd = int.Min(initial.Binary.Length, 100);
+		var headerDict = ResponseHelper.ResponseToDictionary(initial.Binary[..likelyTextEnd], textLineCount);
 		var totalSize = headerDict.IntVal("size");
 		var chunkSize = headerDict.IntVal("binary");
 		if (totalSize == null || chunkSize == null) {
@@ -147,9 +148,9 @@ internal class Coms {
 			};
 		}
 		var errorResponse = "ACK "u8.ToArray();
-		var index = Array.IndexOf(response, errorResponse);
+		var index = HasAckUck(response);
 		if (index >= 0) {// Found error message, return error along with text error message
-			var errorMessBytes = response[(index + errorResponse.Length)..^1];
+			var errorMessBytes = response[index..^1];
 			return new BinaryResponseModel {
 				IsError = true,
 				Binary = [],
@@ -163,6 +164,26 @@ internal class Coms {
 			FooterSize = 0,
 			ErrorMessage = "Unknown Error"
 		};
+	}
+
+	private int HasAckUck(byte[] response) {
+		var errorResponse = "ACK "u8.ToArray();
+		var index = 0;
+		for(var i = 0; i < response.Length; i++) {
+			if (response[i] == errorResponse[index]) {
+				var startI = i;
+				do {
+					index++;
+					i++;
+				} while (index < errorResponse.Length && response[i] == errorResponse[index]);
+				if (index >= errorResponse.Length) {
+					return i;
+				}
+				i = startI;
+				index = 0;
+			}
+		}
+		return -1;
 	}
 }
 

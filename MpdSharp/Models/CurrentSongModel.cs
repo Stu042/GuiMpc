@@ -34,7 +34,7 @@ public class CurrentSongModel {
 						.ToLowerInvariant()
 						.Trim()) {
 				case "file":
-					File = parts[1];
+					File = parts[1].Trim();
 					break;
 				case "lastmodified":
 					LastModified = DateTime.Parse(parts[1]);
@@ -46,28 +46,28 @@ public class CurrentSongModel {
 					Format = new FormatModel(parts[1]);
 					break;
 				case "artist":
-					Artist = parts[1];
+					Artist = parts[1].Trim();
 					break;
 				case "album":
-					Album = parts[1];
+					Album = parts[1].Trim();
 					break;
 				case "title":
-					Title = parts[1];
+					Title = parts[1].Trim();
 					break;
 				case "genre":
-					Genre = parts[1];
+					Genre = parts[1].Trim();
 					break;
 				case "date":
-					Date = parts[1];
+					Date = parts[1].Trim();
 					break;
 				case "track":
-					Track = parts[1];
+					Track = parts[1].Trim();
 					break;
 				case "disc":
-					Disc = parts[1];
+					Disc = parts[1].Trim();
 					break;
 				case "time":
-					Time = parts[1];
+					Time = parts[1].Trim();
 					break;
 				case "duration":
 					Duration = double.Parse(parts[1]);
