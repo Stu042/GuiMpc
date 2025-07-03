@@ -1,7 +1,7 @@
 namespace MpdSharp.Models;
 
 
-public enum State {
+public enum PlayState {
 	Play,
 	Stop,
 	Pause
@@ -28,7 +28,7 @@ public class StatusModel {
 	public double MixRampDb { get; set; }      // mixrampdb: 0
 
 	/// <summary>play, stop, or pause</summary>
-	public State State { get; set; }          // state: pause
+	public PlayState PlayState { get; set; }          // state: pause
 
 	/// <summary>last loaded stored playlist</summary>
 	public int LastLoadedPlaylist { get; set; }// lastloadedplaylist:
@@ -82,7 +82,7 @@ public class StatusModel {
 		Playlist = crazyDict.IntVal("playlist") ?? -1;
 		PlaylistLength = crazyDict.IntVal("playlistlength") ?? -1;
 		MixRampDb = crazyDict.DoubleVal("mixrampdb") ?? 0;
-		State = Enum.Parse<State>(crazyDict.Value("state"), ignoreCase: true);
+		PlayState = Enum.Parse<PlayState>(crazyDict.Value("state"), ignoreCase: true);
 		LastLoadedPlaylist = crazyDict.IntVal("lastloadedplaylist") ?? -1;
 		Song = crazyDict.IntVal("song") ?? -1;
 		SongId = crazyDict.IntVal("songid") ?? -1;

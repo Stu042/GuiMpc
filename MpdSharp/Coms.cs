@@ -1,26 +1,27 @@
 using System.Net.Sockets;
 using System.Text;
+using MpdSharp.Models;
 
 
 namespace MpdSharp;
 
 
 internal class Coms {
-	private readonly TcpClient _socket;
-	private readonly int _portNo;
-	private readonly string _serverIp;
+	private TcpClient _socket;
+	private int _portNo;
+	private string _serverIp;
 	private string? _version;
-	public Coms(string serverIp, int portNo) {
-		_serverIp = serverIp;
-		_portNo = portNo;
-		_socket = new TcpClient(_serverIp, _portNo);
+	private const string DefaultServerHostName = "127.0.0.1";
+	private const int DefaultServerPort = 6600;
+	private const int BufferSize = 4096;
+	public Coms() {
+		_socket = new TcpClient();
 	}
 
-	internal bool Connect() {
-		if (!_socket.Connected) {
-			Console.WriteLine("Connection failed");
-			return false;
-		}
+	internal bool Connect(string? serverIp, int? portNo) {
+		_serverIp = serverIp ?? DefaultServerHostName;
+		_portNo = portNo ??  DefaultServerPort;
+		_socket = new TcpClient(_serverIp, _portNo);
 		var okResponseBytes = "OK MPD"u8.ToArray();
 		var buffer = new byte[1024];
 		_ = _socket.Client.Receive(buffer, SocketFlags.None);
@@ -35,15 +36,20 @@ internal class Coms {
 		Console.WriteLine($"Connected to MPD version {_version}");
 		return true;
 	}
-	public void Close() {
+	private void ReConnect() {
+		if (_socket.Connected) {
+			return;
+		}
+		_socket.Connect(_serverIp, _portNo);
+	}
+
+	internal void Close() {
 		_socket.Close();
 	}
 
 
 	internal void Send(string message) {
-		if (!_socket.Connected) {
-			_socket.Connect(_serverIp, _portNo);
-		}
+		ReConnect();
 		var messageBytes = Encoding.UTF8.GetBytes(message + "\n");
 		try {
 			_ = _socket.Client.Send(messageBytes, SocketFlags.None);
@@ -55,15 +61,14 @@ internal class Coms {
 
 	/// <summary>Retrieves a response, checks for OK at the end and returns the raw bytes.</summary>
 	internal BinaryResponseModel ReceiveRaw() {
-		const int bufferSize = 4096;
 		var bob = new List<byte>();
 		try {
-			var buffer = new byte[bufferSize];
+			var buffer = new byte[BufferSize];
 			int bytesRead;
 			do {
 				bytesRead = _socket.Client.Receive(buffer, SocketFlags.None);
 				bob.AddRange(buffer[..bytesRead]);
-			} while (bytesRead == bufferSize);
+			} while (bytesRead == BufferSize);
 		} catch (Exception e) {
 			Console.WriteLine(e);
 			return new BinaryResponseModel {// response was not okay but unable to find error message, return unknown error
@@ -78,7 +83,7 @@ internal class Coms {
 	}
 
 
-	internal class BinaryPartialResponseModel {
+	private class BinaryPartialResponseModel {
 		public required BinaryResponseModel BinaryResponse { get; init; }
 		public int TotalSize { get; init; }
 		public int ChunkSize { get; set; }
@@ -134,7 +139,7 @@ internal class Coms {
 
 
 	/// <summary>Check for an error, returns error message and length of text at end of response.</summary>
-	private BinaryResponseModel FormatResponse(byte[] response) {
+	private static BinaryResponseModel FormatResponse(byte[] response) {
 		var okResponseBytes = "OK\n"u8.ToArray();
 		var isOkay = response[^okResponseBytes.Length..]
 			.SequenceEqual(okResponseBytes);
@@ -148,7 +153,7 @@ internal class Coms {
 			};
 		}
 		var errorResponse = "ACK "u8.ToArray();
-		var index = HasAckUck(response);
+		var index = ErrorStartIndex(response);
 		if (index >= 0) {// Found error message, return error along with text error message
 			var errorMessBytes = response[index..^1];
 			return new BinaryResponseModel {
@@ -166,7 +171,7 @@ internal class Coms {
 		};
 	}
 
-	private int HasAckUck(byte[] response) {
+	private static int ErrorStartIndex(byte[] response) {
 		var errorResponse = "ACK "u8.ToArray();
 		var index = 0;
 		for(var i = 0; i < response.Length; i++) {
@@ -187,9 +192,4 @@ internal class Coms {
 	}
 }
 
-internal class BinaryResponseModel {
-	public bool IsError { get; init; }
-	public int FooterSize { get; init; }
-	public required string ErrorMessage { get; init; }
-	public required byte[] Binary { get; set; }
-}
+

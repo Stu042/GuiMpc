@@ -3,7 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         Icon="Assets\guimpc.ico"
-        Width="300" Height="450"
+        SizeToContent="WidthAndHeight"
         CanResize="False"
         Closing="Window_OnClosing"
         x:Class="GuiMpc.MainWindow"
@@ -14,65 +14,114 @@
         ExtendClientAreaTitleBarHeightHint="0"
         SystemDecorations="None">
 
-    <StackPanel Background="#ff220000" PointerPressed="App_OnPointerPressed">
+    <StackPanel>
+        <StackPanel Name="PlayerView" IsEnabled="True" Width="300" Height="450" Background="#ff220000" PointerPressed="App_OnPointerPressed">
 
-        <!-- Close app button -->
-        <Canvas HorizontalAlignment="Right" VerticalAlignment="Top" ZIndex="100">
-            <Button Name="Close" BorderThickness="0" Width="15" Height="15" Click="Close_OnClick" Canvas.Right="0" Canvas.Top="0" Background="#00220000" Opacity="0.4">
-                <Image Width="10" Height="10" Source="Assets/close.png" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
-            </Button>
-        </Canvas>
+            <!-- Close app button -->
+            <Canvas HorizontalAlignment="Right" VerticalAlignment="Top" ZIndex="100">
+                <Button Name="Close" BorderThickness="0" Width="15" Height="15" Click="Close_OnClick" Canvas.Right="0" Canvas.Top="0" Background="#00220000" Opacity="0.4">
+                    <Image Width="10" Height="10" Source="Assets/close.png"></Image>
+                </Button>
+            </Canvas>
 
-        <!-- Current song image -->
-        <StackPanel>
-            <Image Name="AlbumArt" Height="200" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
-        </StackPanel>
+            <!-- Current song image -->
+            <StackPanel>
+                <Image Name="AlbumArt" Height="200" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
+            </StackPanel>
 
-        <!-- Current song name -->
-        <StackPanel IsEnabled="False" Margin="5 1 5 0 ">
-            <TextBox Name="SongTitle"></TextBox>
-        </StackPanel>
+            <!-- Current song name -->
+            <StackPanel IsEnabled="False" Margin="5 1 5 0 ">
+                <TextBox Name="SongTitle"></TextBox>
+            </StackPanel>
 
-        <!-- Play buttons & Song position & Volume sliders -->
-        <RelativePanel Name="ControlButtonsAndSongPosAndVol" Height="40">
-            <RelativePanel Name="ControlButtonsAndSongPos" Width="260">
-                <!-- Play buttons -->
-                <RelativePanel Name="ControlButtonsContainer" Height="15" HorizontalAlignment="Left" Margin="10 3">
-                    <Button Name="Prev" Height="20" BorderThickness="0" HorizontalAlignment="Left" Padding="0" Click="Prev_Clicked" Background="#00220000">
-                        <Image Width="20" Height="20" Source="Assets\prev2.png" Opacity="0.7" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
-                    </Button>
-                    <Button Name="Pause" Height="20" BorderThickness="0" RelativePanel.RightOf="Prev" Padding="0" Click="Pause_Clicked" Background="#00220000">
-                        <Image Width="20" Height="20" Source="Assets\pause2.png" Opacity="0.7" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
-                    </Button>
-                    <Button Name="Play" Height="20" BorderThickness="0" RelativePanel.RightOf="Pause" Padding="0" Click="Play_Clicked" Background="#00220000">
-                        <Image Name="PlayImage" Width="20" Height="20" Source="Assets\play2.png" Opacity="0.7" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
-                    </Button>
-                    <Button Name="Next" Height="20" BorderThickness="0" RelativePanel.RightOf="Play" Padding="0" Click="Next_Clicked" Background="#00220000">
-                        <Image Width="20" Height="20" Source="Assets\next2.png" Opacity="0.7" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
-                    </Button>
+            <!-- Play buttons & Song position & Volume sliders -->
+            <RelativePanel Name="ControlButtonsAndSongPosAndVol" Height="40">
+                <RelativePanel Name="ControlButtonsAndSongPos" Width="260">
+                    <!-- Play buttons -->
+                    <RelativePanel Name="ControlButtonsContainer" Height="15" HorizontalAlignment="Left" Margin="10 3">
+                        <Button Name="Prev" Height="20" BorderThickness="0" HorizontalAlignment="Left" Padding="0" Click="Prev_Clicked" Background="#00220000">
+                            <Image Width="20" Height="20" Source="Assets\prev2.png" Opacity="0.7" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
+                        </Button>
+                        <Button Name="Pause" Height="20" BorderThickness="0" RelativePanel.RightOf="Prev" Padding="0" Click="Pause_Clicked" Background="#00220000">
+                            <Image Width="20" Height="20" Source="Assets\pause2.png" Opacity="0.7" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
+                        </Button>
+                        <Button Name="Play" Height="20" BorderThickness="0" RelativePanel.RightOf="Pause" Padding="0" Click="Play_Clicked" Background="#00220000">
+                            <Image Name="PlayImage" Width="20" Height="20" Source="Assets\play2.png" Opacity="0.7" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
+                        </Button>
+                        <Button Name="Next" Height="20" BorderThickness="0" RelativePanel.RightOf="Play" Padding="0" Click="Next_Clicked" Background="#00220000">
+                            <Image Width="20" Height="20" Source="Assets\next2.png" Opacity="0.7" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
+                        </Button>
+
+                        <!-- Open queue builder window -->
+                        <Button Name="Queue" Height="20" Margin="10 0 1 0" BorderThickness="0" RelativePanel.RightOf="Next" Padding="0" Click="Queue_Clicked" Background="#00220000">
+                            <Image Width="20" Height="20" Source="Assets\stop2.png" Opacity="0.7" RenderOptions.BitmapInterpolationMode="HighQuality"></Image>
+                        </Button>
+                    </RelativePanel>
+
+                    <!-- Song position -->
+                    <RelativePanel Name="SongBarContainer" RelativePanel.Below="ControlButtonsContainer" HorizontalAlignment="Left" Margin="10 0" Width="280">
+                        <Slider Name="SongPosition" Width="250" HorizontalAlignment="Left" ValueChanged="SongPosition_OnValueChanged" SmallChange="1" LargeChange="10">
+                        </Slider>
+                    </RelativePanel>
                 </RelativePanel>
 
-                <!-- Song position -->
-                <RelativePanel Name="SongBarContainer" RelativePanel.Below="ControlButtonsContainer" HorizontalAlignment="Left" Margin="10 0" Width="280">
-                    <Slider Name="SongPosition" Width="250" HorizontalAlignment="Left" ValueChanged="SongPosition_OnValueChanged" SmallChange="1" LargeChange="10">
-                    </Slider>
-                </RelativePanel>
+                <!-- Volume -->
+                <Slider Name="Volume" Height="55" ZIndex="100" Margin="5 4 10 4" RelativePanel.RightOf="ControlButtonsAndSongPos" Orientation="Vertical" ValueChanged="Volume_OnValueChanged" PointerWheelChanged="Volume_OnPointerWheelChanged"
+                        SmallChange="1" LargeChange="10">
+                </Slider>
             </RelativePanel>
 
-            <!-- Volume -->
-            <Slider Name="Volume" Height="40" ZIndex="100" Margin="10 0" RelativePanel.RightOf="ControlButtonsAndSongPos" Orientation="Vertical" ValueChanged="Volume_OnValueChanged" PointerWheelChanged="Volume_OnPointerWheelChanged" SmallChange="1" LargeChange="10">
-            </Slider>
-        </RelativePanel>
+            <!-- Play queue -->
+            <ListBox Name="PlaylistContainer" SelectionChanged="PlayListContainer_OnSelectionChanged" Padding="0" SelectionMode="Single" Height="180" Margin="5 4" AutoScrollToSelectedItem="True" BorderThickness="1" Foreground="#ff000000"
+                     BorderBrush="#88220000">
+                <ListBoxItem Background="#44220000">Test</ListBoxItem>
+                <ListBoxItem Background="#44220000">Test</ListBoxItem>
+                <ListBoxItem Background="#44220000">Test</ListBoxItem>
+                <ListBoxItem Background="#44220000">Test</ListBoxItem>
+                <ListBoxItem Background="#44220000">Test</ListBoxItem>
+                <ListBoxItem Background="#44220000">Test</ListBoxItem>
+            </ListBox>
+        </StackPanel>
 
-        <!-- Play queue -->
-        <ListBox Name="PlaylistContainer" SelectionChanged="PlayListContainer_OnSelectionChanged" Padding="0" SelectionMode="Single" Height="180" Margin="5 4" AutoScrollToSelectedItem="True" Background="#44220000" BorderThickness="1" Foreground="#ff000000"
-                 BorderBrush="#88220000">
-            <ListBoxItem Background="#44220000">Test</ListBoxItem>
-            <ListBoxItem Background="#44220000">Test</ListBoxItem>
-            <ListBoxItem Background="#44220000">Test</ListBoxItem>
-            <ListBoxItem Background="#44220000">Test</ListBoxItem>
-            <ListBoxItem Background="#44220000">Test</ListBoxItem>
-            <ListBoxItem Background="#44220000">Test</ListBoxItem>
-        </ListBox>
+
+        <StackPanel Name="PlaylistView" IsVisible="False" IsEnabled="False" Width="600" Height="450" PointerPressed="App_OnPointerPressed">
+
+            <!-- Close app button -->
+            <Canvas HorizontalAlignment="Right" VerticalAlignment="Top" ZIndex="100">
+                <Button Name="ClosePlaylist" BorderThickness="0" Width="15" Height="15" Click="PlaylistViewClose_OnClick" Canvas.Right="0" Canvas.Top="0" Background="#00220000" Opacity="0.4">
+                    <Image Width="10" Height="10" Source="Assets/close.png"></Image>
+                </Button>
+            </Canvas>
+
+            <!-- Path -->
+            <RelativePanel Margin="4 4">
+                <TextBox Name="Path" Height="24" Width="300" LineHeight="22"></TextBox>
+            </RelativePanel>
+
+            <StackPanel Orientation="Horizontal" Margin="4 4">
+                <StackPanel Name="Lhs" Width="196">
+                    <Label>Filesystem</Label>
+                    <ListBox Name="Browser" Height="355" Margin="0 0 2 0" ScrollViewer.AllowAutoHide="True"></ListBox>
+                    <RelativePanel Name="BrowserIcons" Margin="0 3 0 3">
+                        <Button Name="GoToRoot">Root</Button>
+                        <Button Name="Add" RelativePanel.RightOf="GoToRoot">Add</Button>
+                        <Button Name="AddAtEnd" RelativePanel.RightOf="Add">Add Last</Button>
+                    </RelativePanel>
+                </StackPanel>
+
+                <StackPanel Name="Rhs" Width="396">
+                    <Label>Play List</Label>
+                    <ListBox Name="PlayQueue" Height="355" Margin="2 0 0 0" SelectionMode="Multiple"></ListBox>
+                    <RelativePanel Name="QueueIcons" Margin="0 3 0 3">
+                        <Button Name="ClearQueue">Clear</Button>
+                        <Button Name="Remove" RelativePanel.RightOf="ClearQueue">Rem</Button>
+                        <Button Name="Shuffle" RelativePanel.RightOf="Remove">Shuffle</Button>
+                    </RelativePanel>
+
+                </StackPanel>
+            </StackPanel>
+
+
+        </StackPanel>
     </StackPanel>
 </Window>

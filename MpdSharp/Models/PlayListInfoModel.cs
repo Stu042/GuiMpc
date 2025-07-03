@@ -2,7 +2,7 @@ namespace MpdSharp.Models;
 
 
 public class PlayListInfoModel {
-	public CurrentSongModel[] CurrentSongs { get; set; }
+	public CurrentSongModel[] Songs { get; set; }
 	public PlayListInfoModel(byte[] response) {
 		var parsedResponse = ResponseHelper.ResponseToDictionary(response);
 		var currentSongs = new List<CurrentSongModel>();
@@ -13,6 +13,6 @@ public class PlayListInfoModel {
 		for (var i = 0; i < count; i++) {
 			currentSongs.Add(new CurrentSongModel(reader));
 		}
-		CurrentSongs = currentSongs.ToArray();
+		Songs = currentSongs.ToArray();
 	}
 }

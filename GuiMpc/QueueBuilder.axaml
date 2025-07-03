@@ -1,0 +1,54 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
+        x:Class="GuiMpc.QueueBuilder"
+        Title="Queue Builder"
+        Width="600" Height="450"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        Opacity="0.8"
+        ExtendClientAreaTitleBarHeightHint="0"
+        SystemDecorations="None">
+
+    <StackPanel PointerPressed="App_OnPointerPressed">
+
+        <!-- Close app button -->
+        <Canvas HorizontalAlignment="Right" VerticalAlignment="Top" ZIndex="100">
+            <Button Name="Close" BorderThickness="0" Width="15" Height="15" Click="Close_OnClick" Canvas.Right="0" Canvas.Top="0" Background="#00220000" Opacity="0.4">
+                <Image Width="10" Height="10" Source="Assets/close.png" ></Image>
+            </Button>
+        </Canvas>
+
+        <!-- Path -->
+        <RelativePanel Margin="4 4">
+            <TextBox Name="Path" Height="24" Width="300" LineHeight="22" TextChanged="Path_OnTextChanged"></TextBox>
+        </RelativePanel>
+
+        <StackPanel Orientation="Horizontal" Margin="4 4">
+            <StackPanel Name="Lhs" Width="196">
+                <Label>Filesystem</Label>
+                <ListBox Name="Browser" Height="355" Margin="0 0 2 0" ScrollViewer.AllowAutoHide="True"></ListBox>
+                <RelativePanel Name="BrowserIcons" Margin="0 3 0 3">
+                    <Button Name="GoToRoot">Root</Button>
+                    <Button Name="Add" RelativePanel.RightOf="GoToRoot">Add</Button>
+                    <Button Name="AddAtEnd" RelativePanel.RightOf="Add">Add Last</Button>
+                </RelativePanel>
+            </StackPanel>
+
+            <StackPanel Name="Rhs" Width="396">
+                <Label>Play List</Label>
+                <ListBox Name="PlayQueue" Height="355" Margin="2 0 0 0" SelectionMode="Multiple"></ListBox>
+                <RelativePanel Name="QueueIcons" Margin="0 3 0 3">
+                    <Button Name="ClearQueue">Clear</Button>
+                    <Button Name="Remove" RelativePanel.RightOf="ClearQueue">Rem</Button>
+                    <Button Name="Shuffle" RelativePanel.RightOf="Remove">Shuffle</Button>
+                </RelativePanel>
+
+            </StackPanel>
+        </StackPanel>
+
+
+    </StackPanel>
+</Window>

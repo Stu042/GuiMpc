@@ -3,19 +3,16 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
-using Avalonia.Controls.Selection;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
-using Avalonia.Utilities;
+using Microsoft.Extensions.Logging;
 using MpdSharp;
 using MpdSharp.Models;
 
@@ -24,25 +21,24 @@ namespace GuiMpc;
 
 
 public partial class MainWindow : Window {
-	private readonly Mpd _mpd;
-	private StatusModel? _status;
-	private CurrentSongModel? _currentSong;
+	private readonly ILogger<MainWindow> _logger;
+	private MpdWrapper _mpdWrapper;
 	private readonly DispatcherTimer _viewUpdateTimer;
 	private readonly Uri _stopButtonImageUri = new Uri("avares://GuiMpc/Assets/stop2.png");
 	private readonly Uri _playButtonImageUri = new Uri("avares://GuiMpc/Assets/play2.png");
-	private PlayListInfoModel _playListInfo;
 
 
-	public MainWindow() {
+	public MainWindow(MpdWrapper mpdWrapper, ILogger<MainWindow> logger) {
 #if DEBUG
 		this.AttachDevTools();
 #endif
-		_mpd = new Mpd();
-		_mpd.Connect();
 		InitializeComponent();
+		_mpdWrapper = mpdWrapper;
+		_logger = logger;
 		PopulatePlayList();
 		Timer_Tick(this, EventArgs.Empty);
 		UpdateCurrentSong();
+		UpdateButtons();
 		_viewUpdateTimer = new DispatcherTimer {
 			Interval = TimeSpan.FromSeconds(1)
 		};
@@ -60,45 +56,62 @@ public partial class MainWindow : Window {
 
 
 	// Media buttons
+	private void UpdateButtons() {
+		var playState = _mpdWrapper.GetPlayButtonState();
+		switch (playState) {
+			case PlayState.Play: {
+				var bitmap = new Bitmap(AssetLoader.Open(_stopButtonImageUri));
+				PlayImage.Source = bitmap;
+				break;
+			}
+			case PlayState.Pause:
+			case PlayState.Stop: {
+				var bitmap = new Bitmap(AssetLoader.Open(_playButtonImageUri));
+				PlayImage.Source = bitmap;
+				break;
+			}
+			default:
+				_logger.LogError("Unknown PlayState: {playState}", playState);
+				break;
+		}
+	}
+
 	private void Play_Clicked(object? sender, RoutedEventArgs e) {
 		if (e.Handled) {
 			return;
 		}
-		Debug.WriteLine("Click Play");
-		if (_status?.State == State.Stop || _status?.State == State.Pause) {
-			if (_mpd.Play()) {
-				var bitmap = new Bitmap(AssetLoader.Open(_stopButtonImageUri));
-				PlayImage.Source = bitmap;
-			}
+		_logger.LogDebug("Click Play");
+		var playState = _mpdWrapper.GetPlayButtonState();
+		if (playState == PlayState.Stop || playState == PlayState.Pause) {
+			_mpdWrapper.Play();
 		} else {
-			if (_mpd.Stop()) {
-				var bitmap = new Bitmap(AssetLoader.Open(_playButtonImageUri));
-				PlayImage.Source = bitmap;
-				SongPosition.Value = 0;
-			}
+			_mpdWrapper.Stop();
+			SongPosition.Value = 0;
 		}
+		UpdateButtons();
 	}
 	private void Pause_Clicked(object? sender, RoutedEventArgs e) {
 		if (e.Handled) {
 			return;
 		}
-		Debug.WriteLine("Click Pause");
-		_mpd.Pause();
+		_logger.LogDebug("Click Pause");
+		_mpdWrapper.Pause();
+		UpdateButtons();
 	}
 	private void Next_Clicked(object? sender, RoutedEventArgs e) {
 		if (e.Handled) {
 			return;
 		}
-		Debug.WriteLine("Click Next");
-		_mpd.Next();
+		_logger.LogDebug("Click Next");
+		_mpdWrapper.Next();
 		UpdateCurrentSong();
 	}
 	private void Prev_Clicked(object? sender, RoutedEventArgs e) {
 		if (e.Handled) {
 			return;
 		}
-		Debug.WriteLine("Click Prev");
-		_mpd.Previous();
+		_logger.LogDebug("Click Prev");
+		_mpdWrapper.Prev();
 		UpdateCurrentSong();
 	}
 
@@ -113,85 +126,83 @@ public partial class MainWindow : Window {
 	}
 
 
-	// Song Position slider
-	private void SongPosition_OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e) {
-		if (e.Handled || _status == null) {
+
+
+	private void Queue_Clicked(object? sender, RoutedEventArgs e) {
+		if (e.Handled) {
 			return;
 		}
-		var oldSliderPos = _status.Elapsed * 100.0 / _status.Duration;
-		var newSliderPos = e.NewValue;
-		if (oldSliderPos.CompareTo(newSliderPos) != 0) {
-			var newSongPos = newSliderPos / 100.0 * _status.Duration;
-			_mpd.SeekCurrent(newSongPos);
+		Debug.WriteLine("Click Queue");
+		ShowPlaylistView();
+	}
+	private void PlaylistViewClose_OnClick(object? sender, RoutedEventArgs e) {
+		if (e.Handled) {
+			return;
 		}
+		ShowPlayerView();
+	}
+
+	private void ShowPlaylistView() {
+		PlayerView.IsEnabled = false;
+		PlayerView.IsVisible = false;
+		PlaylistView.IsEnabled = true;
+		PlaylistView.IsVisible = true;
+	}
+
+	private void ShowPlayerView() {
+		PlayerView.IsEnabled = true;
+		PlayerView.IsVisible = true;
+		PlaylistView.IsEnabled = false;
+		PlaylistView.IsVisible = false;
+	}
+
+
+	// Song Position slider
+	private void SongPosition_OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
+		_mpdWrapper.SetSongPos(e.NewValue);
 	}
 
 	// Volume position slider
 	private void Volume_OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e) {
-		if (_status != null) {
-			var newVol = VolumeSliderToMpd(e.NewValue);
-			_mpd.SetVolume(newVol);
-			Console.WriteLine($"User volume changed to {newVol}");
-		}
+		_mpdWrapper.SetVol((int)e.NewValue);
 	}
 
 	private void Volume_OnPointerWheelChanged(object? sender, PointerWheelEventArgs e) {
 		if (e.Handled) {
 			return;
 		}
-		Volume.Value += e.Delta.Y * 2;
-		var mpdVol = VolumeSliderToMpd(Volume.Value);
-		_mpd.SetVolume(mpdVol);
-		e.Handled = true;
+		var vol = _mpdWrapper.GetVol();
+		vol += e.Delta.Y * 2;
+		_mpdWrapper.SetVol((int)vol);
 	}
-
-	private static int VolumeSliderToMpd(double sliderVal) {
-		var mpdVol = (int)Math.Round(Math.Sqrt(sliderVal) * 10.0);
-		return mpdVol;
-	}
-	private static double VolumeMpdToSlider(int mpdVal) {
-		var sliderVol = mpdVal * mpdVal / 100.0;
-		return sliderVol;
-	}
-
 
 	// Auto app update
 	private void Timer_Tick(object? sender, EventArgs e) {
-		_status = _mpd.Status();
-		SongPosition.Value = _status.Elapsed * 100.0 / _status.Duration;
-		var mpdVolume = _mpd.GetVolume();
-		var volVal = VolumeMpdToSlider(mpdVolume);
-		if (Volume.Value < volVal - 0.5 || Volume.Value > volVal + 0.5) {
-			Console.WriteLine($"volVal: {volVal} Volume.Value: {Volume.Value} _status.Volume: {mpdVolume}");
-			Volume.Value = volVal;
-		}
-		UpdateCurrentSong();
+		_mpdWrapper.UpdateMpdState();
+		var vol = _mpdWrapper.GetVol();
+		Volume.Value = vol;
+		var pos = _mpdWrapper.GetSongPos();
+		SongPosition.Value = pos;
 	}
 
 
 	// Playlist
 	private void PopulatePlayList() {
-		var mpdPlaylist = _mpd.PlayListInfo();
-		if (mpdPlaylist == null) {
-			return;
-		}
-		_playListInfo = mpdPlaylist;
-		List<ListBoxItem> listBoxItems = [];
-		var songsListItems = _playListInfo.CurrentSongs.Select(item => new ListBoxItem {
-			Content = CurrentSongFullText(item),
-			Margin = new Thickness(5, 0, 5, 0),
-			Foreground = new SolidColorBrush(new Color(255, 255, 200, 200)),
-			Background = new SolidColorBrush(new Color(44, 34, 0, 0)),
+		var songs = _mpdWrapper.GetPlayList();
+		var songsListItems = songs.Select(song => new ListBoxItem {
+			Content = song,
 		});
-		listBoxItems.AddRange(songsListItems);
 		PlaylistContainer.Items.Clear();
-		foreach (var li in listBoxItems) {
+		foreach (var li in songsListItems) {
 			PlaylistContainer.Items.Add(li);
 		}
 	}
 
 	private void PlayListContainer_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
-		if (e.Handled) {
+		if (e.Handled || e.AddedItems.Count <= 0) {
 			return;
 		}
 		var selectedItem = e.AddedItems[0] as ListBoxItem;
@@ -199,60 +210,25 @@ public partial class MainWindow : Window {
 		if (string.IsNullOrEmpty(selectedText)) {
 			return;
 		}
-		foreach (var item in _playListInfo.CurrentSongs) {
-			if (string.Equals(selectedText, CurrentSongFullText(item), StringComparison.Ordinal)) {
-				if (item.Pos != _currentSong?.Pos) {
-					_mpd.Play(item.Pos);
-				}
-				return;
-			}
-		}
+		_mpdWrapper.PlayNewSong(selectedText);
+		UpdateCurrentSong();
+		SongTitle.Text = selectedText;
 	}
-
-
-	private static string CurrentSongFullText(CurrentSongModel currentSong) {
-		var hasArtist = !string.IsNullOrEmpty(currentSong.Artist);
-		var hasAlbum = !string.IsNullOrEmpty(currentSong.Album);
-		var hasTitle = !string.IsNullOrEmpty(currentSong.Title);
-		var bob = new List<string>();
-		if (hasArtist) {
-			bob.Add(currentSong.Artist);
-		}
-		if (hasAlbum) {
-			bob.Add(currentSong.Album);
-		}
-		if (hasTitle) {
-			bob.Add(currentSong.Title);
-		}
-		var fullTitle = string.Join(" - ", bob);
-		return fullTitle;
-	}
-
 
 	private void UpdateCurrentSong() {
-		var curSong = _mpd.CurrentSong();
+		var curSong = _mpdWrapper.GetCurrentSongFullText();
 		if (curSong == null) {
 			return;
 		}
-		if (_currentSong?.Id == curSong.Id) {// new song?
+		if (string.Equals(SongTitle.Text, curSong)) {// new song?
 			return;
 		}
-		_currentSong = curSong;
-		var songTitle = CurrentSongFullText(curSong);
-		SongTitle.Text = songTitle;
-		foreach (var item in PlaylistContainer.Items) {
-			var i = item as ListBoxItem;
-			if (string.Equals(songTitle, i?.Content as string, StringComparison.Ordinal)) {
-				PlaylistContainer.SelectedItem = item;
-				break;
-			}
-		}
-		var imageBytes = _mpd.ReadPicture(curSong.File);
+		SongTitle.Text = curSong;
+		var selectedItem = PlaylistContainer.Items.FirstOrDefault(i => string.Equals((i as ListBoxItem)?.Content, curSong));
+		PlaylistContainer.SelectedItem = selectedItem;
+		var imageBytes = _mpdWrapper.GetSongArt();
 		if (imageBytes.Length <= 0) {
-			imageBytes = _mpd.AlbumArt(curSong.File);
-			if (imageBytes.Length <= 0) {
-				return;
-			}
+			return;
 		}
 		using var stream = new MemoryStream(imageBytes);
 		var bitmap = new Bitmap(stream);
@@ -265,6 +241,6 @@ public partial class MainWindow : Window {
 	private void Window_OnClosing(object? sender, WindowClosingEventArgs e) {
 		Console.WriteLine("Closing Window nicely...");
 		_viewUpdateTimer.Stop();
-		_mpd.Close();
+		_mpdWrapper.Close();
 	}
 }

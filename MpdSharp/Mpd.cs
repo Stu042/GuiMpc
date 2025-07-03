@@ -7,12 +7,13 @@ namespace MpdSharp;
 public class Mpd {
 	private readonly Coms _coms;
 
-	public Mpd(string serverIp = "127.0.0.1", int portNo = 6600) {
-		_coms = new Coms(serverIp, portNo);
+
+	public Mpd() {
+		_coms = new Coms();
 	}
 
-	public bool Connect() {
-		return _coms.Connect();
+	public bool Connect(string? serverIp = null, int? portNo = null) {
+		return _coms.Connect(serverIp, portNo);
 	}
 	public void Close() {
 		_coms.Close();
@@ -397,6 +398,18 @@ public class Mpd {
 		var playListInfoModel = new PlayListInfoModel(response.Binary);
 		return playListInfoModel;
 	}
+
+	public ListInfoModel? LsInfo(string uri) {
+		_coms.Send($"lsinfo \"{uri}\"");
+		var response = _coms.ReceiveRaw();
+		if (response.IsError) {
+			Console.WriteLine($"LsInfo {uri} returned error: {response.ErrorMessage}");
+			return null;
+		}
+		var listInfoModel = new ListInfoModel(response.Binary);
+		return listInfoModel;
+	}
+
 
 
 
