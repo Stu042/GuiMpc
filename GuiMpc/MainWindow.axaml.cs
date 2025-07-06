@@ -22,10 +22,11 @@ namespace GuiMpc;
 
 public partial class MainWindow : Window {
 	private readonly ILogger<MainWindow> _logger;
-	private MpdWrapper _mpdWrapper;
+	private readonly MpdWrapper _mpdWrapper;
 	private readonly DispatcherTimer _viewUpdateTimer;
 	private readonly Uri _stopButtonImageUri = new Uri("avares://GuiMpc/Assets/stop2.png");
 	private readonly Uri _playButtonImageUri = new Uri("avares://GuiMpc/Assets/play2.png");
+	private string _currentUri = string.Empty;
 
 
 	public MainWindow(MpdWrapper mpdWrapper, ILogger<MainWindow> logger) {
@@ -35,6 +36,7 @@ public partial class MainWindow : Window {
 		InitializeComponent();
 		_mpdWrapper = mpdWrapper;
 		_logger = logger;
+		_mpdWrapper.Connect();
 		PopulatePlayList();
 		Timer_Tick(this, EventArgs.Empty);
 		UpdateCurrentSong();
@@ -132,7 +134,9 @@ public partial class MainWindow : Window {
 		if (e.Handled) {
 			return;
 		}
-		Debug.WriteLine("Click Queue");
+		_logger.LogDebug("Click Queue");
+		FileBrowserPopulate();
+		PlayQueuePopulate();
 		ShowPlaylistView();
 	}
 	private void PlaylistViewClose_OnClick(object? sender, RoutedEventArgs e) {
@@ -201,11 +205,11 @@ public partial class MainWindow : Window {
 		}
 	}
 
-	private void PlayListContainer_OnSelectionChanged(object? sender, SelectionChangedEventArgs e) {
-		if (e.Handled || e.AddedItems.Count <= 0) {
+	private void PlaylistContainer_OnPointerReleased(object? sender, PointerReleasedEventArgs e) {
+		if (e.Handled || PlaylistContainer.SelectedItems == null || PlaylistContainer.SelectedItems.Count <= 0) {
 			return;
 		}
-		var selectedItem = e.AddedItems[0] as ListBoxItem;
+		var selectedItem = PlaylistContainer.SelectedItems[0] as ListBoxItem;
 		var selectedText = selectedItem?.Content as string;
 		if (string.IsNullOrEmpty(selectedText)) {
 			return;
@@ -235,12 +239,51 @@ public partial class MainWindow : Window {
 		AlbumArt.Source = bitmap;
 	}
 
-
-
 	// clean up when exiting app
 	private void Window_OnClosing(object? sender, WindowClosingEventArgs e) {
-		Console.WriteLine("Closing Window nicely...");
+		_logger.LogDebug("Closing Window nicely...");
 		_viewUpdateTimer.Stop();
 		_mpdWrapper.Close();
+	}
+
+
+
+	private void FileBrowserPopulate() {
+		var files = _mpdWrapper.FileBrowser(_currentUri);
+		if (!files.Any()) {
+			_currentUri = string.Empty;
+			files = _mpdWrapper.FileBrowser(_currentUri);
+		}
+		Path.Text = _currentUri;
+		FileBrowser.Items.Clear();
+		foreach (var file in files) {
+			FileBrowser.Items.Add(file);
+		}
+	}
+
+	private void PlayQueuePopulate() {
+		var songs = _mpdWrapper.GetPlayQueue();
+		PlayQueue.Items.Clear();
+		foreach (var song in songs) {
+			PlayQueue.Items.Add(song);
+		}
+	}
+
+
+	private void FileBrowser_OnPointerReleased(object? sender, PointerReleasedEventArgs e) {
+		if (e.Handled || FileBrowser.SelectedItems == null || FileBrowser.SelectedItems.Count <= 0) {
+			return;
+		}
+		if (FileBrowser.SelectedItems[0] is not FileModel selectedText) {
+			_currentUri = string.Empty;
+		} else {
+			if (string.Equals(selectedText.Path, "..")) {
+				var lastIndex = _currentUri.LastIndexOf('/');
+				_currentUri = lastIndex >= 0 ? _currentUri[..lastIndex] : string.Empty;
+			} else {
+				_currentUri = selectedText.Path;
+			}
+		}
+		FileBrowserPopulate();
 	}
 }

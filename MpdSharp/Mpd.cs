@@ -1,4 +1,5 @@
-﻿using MpdSharp.Models;
+﻿using Microsoft.Extensions.Logging;
+using MpdSharp.Models;
 
 
 namespace MpdSharp;
@@ -6,10 +7,10 @@ namespace MpdSharp;
 
 public class Mpd {
 	private readonly Coms _coms;
-
-
-	public Mpd() {
-		_coms = new Coms();
+	private readonly ILogger<Mpd> _logger;
+	public Mpd(Coms coms, ILogger<Mpd> logger) {
+		_coms = coms;
+		_logger = logger;
 	}
 
 	public bool Connect(string? serverIp = null, int? portNo = null) {
@@ -25,7 +26,7 @@ public class Mpd {
 		_coms.Send("next");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Next returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Next returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -34,7 +35,7 @@ public class Mpd {
 		_coms.Send("pause");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Pause returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Pause returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -44,7 +45,7 @@ public class Mpd {
 		_coms.Send($"play{pos}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Play{pos} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Play{pos} returned error: {response.ErrorMessage}", pos, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -53,7 +54,7 @@ public class Mpd {
 		_coms.Send($"playid {songId}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Playid {songId} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Playid {songId} returned error: {response.ErrorMessage}", songId, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -62,7 +63,7 @@ public class Mpd {
 		_coms.Send("previous");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Previous returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Previous returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -72,7 +73,7 @@ public class Mpd {
 		_coms.Send($"seek {songPos} {time}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Seek {songPos} {time} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Seek {songPos} {time} returned error: {response.ErrorMessage}", songPos, time, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -81,7 +82,7 @@ public class Mpd {
 		_coms.Send($"seekid {songId} {time}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Seekid {songId} {time} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Seekid {songId} {time} returned error: {response.ErrorMessage}", songId, time, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -90,7 +91,7 @@ public class Mpd {
 		_coms.Send($"seekcur {time}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Seekcur {time} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Seekcur {time} returned error: {response.ErrorMessage}", time, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -99,7 +100,7 @@ public class Mpd {
 		_coms.Send("stop");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Stop returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Stop returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -111,7 +112,7 @@ public class Mpd {
 		_coms.Send($"add {uri}{pos}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Add {uri}{pos} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Add {uri}{pos} returned error: {response.ErrorMessage}", uri, pos, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -121,7 +122,7 @@ public class Mpd {
 		_coms.Send($"add {uri} {pos}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Add {uri}{pos} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Add {uri}{pos} returned error: {response.ErrorMessage}", uri, pos, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -132,7 +133,7 @@ public class Mpd {
 		_coms.Send($"addid {uri}{pos}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Add {uri}{pos} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Add {uri}{pos} returned error: {response.ErrorMessage}", uri, pos, response.ErrorMessage);
 			return -1;
 		}
 		var songId = new AddIdModel(response.Binary);
@@ -144,7 +145,7 @@ public class Mpd {
 		_coms.Send($"addid {uri} {pos}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Add {uri}{pos} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Add {uri}{pos} returned error: {response.ErrorMessage}", uri, pos, response.ErrorMessage);
 			return -1;
 		}
 		var songId = new AddIdModel(response.Binary);
@@ -155,7 +156,7 @@ public class Mpd {
 		_coms.Send("clear");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Clear returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Clear returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -165,7 +166,7 @@ public class Mpd {
 		_coms.Send($"delete {position}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Delete {position} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Delete {position} returned error: {response.ErrorMessage}", position, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -175,7 +176,7 @@ public class Mpd {
 		_coms.Send($"delete {from}:{toNotIncluding}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Delete {from}:{toNotIncluding} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Delete {from}:{toNotIncluding} returned error: {response.ErrorMessage}", from, toNotIncluding, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -184,7 +185,7 @@ public class Mpd {
 		_coms.Send($"deleteid {songId}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Deleteid {songId} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Deleteid {songId} returned error: {response.ErrorMessage}", songId, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -199,7 +200,7 @@ public class Mpd {
 		_coms.Send($"consume {stateStr}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Consume {stateStr} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Consume {stateStr} returned error: {response.ErrorMessage}", stateStr, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -208,7 +209,7 @@ public class Mpd {
 		_coms.Send($"crossfade {fade}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Crossfade {fade} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Crossfade {fade} returned error: {response.ErrorMessage}", fade, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -217,7 +218,7 @@ public class Mpd {
 		_coms.Send($"mixrampdb {decibels}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Mixrampdb {decibels} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Mixrampdb {decibels} returned error: {response.ErrorMessage}", decibels, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -226,7 +227,7 @@ public class Mpd {
 		_coms.Send($"mixrampdelay {delay}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"mixrampdelay {delay} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("mixrampdelay {delay} returned error: {response.ErrorMessage}", delay, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -236,7 +237,7 @@ public class Mpd {
 		_coms.Send($"random {stateStr}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Random {stateStr} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Random {stateStr} returned error: {response.ErrorMessage}", stateStr, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -246,7 +247,7 @@ public class Mpd {
 		_coms.Send($"repeat {stateStr}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Repeat {stateStr} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Repeat {stateStr} returned error: {response.ErrorMessage}", stateStr, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -255,7 +256,7 @@ public class Mpd {
 		_coms.Send($"setvol {vol}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Setvol {vol} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Setvol {vol} returned error: {response.ErrorMessage}", vol, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -264,7 +265,7 @@ public class Mpd {
 		_coms.Send($"getvol");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Getvol returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Getvol returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return -1;
 		}
 		var volume = new VolumeModel(response.Binary);
@@ -275,7 +276,7 @@ public class Mpd {
 		_coms.Send($"single {stateStr}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Single {stateStr} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Single {stateStr} returned error: {response.ErrorMessage}", stateStr, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -296,7 +297,7 @@ public class Mpd {
 		_coms.Send($"replay_gain_mode {stateStr}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Replay_gain_mode {stateStr} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Replay_gain_mode {stateStr} returned error: {response.ErrorMessage}", stateStr, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -306,7 +307,7 @@ public class Mpd {
 		_coms.Send("replay_gain_status");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Replay_gain_status returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Replay_gain_status returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return string.Empty;
 		}
 		var volume = new ReplayGainStatusModel(response.Binary);
@@ -317,7 +318,7 @@ public class Mpd {
 		_coms.Send($"volume {change}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Volume {change} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Volume {change} returned error: {response.ErrorMessage}", change, response.ErrorMessage);
 			return false;
 		}
 		return true;
@@ -328,7 +329,7 @@ public class Mpd {
 		_coms.Send("currentsong");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"CurrentSong returned error: {response.ErrorMessage}");
+			_logger.LogDebug("CurrentSong returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return null;
 		}
 		var currentSong = new CurrentSongModel(response.Binary);
@@ -338,7 +339,7 @@ public class Mpd {
 	public byte[] AlbumArt(string uri) {
 		var response = _coms.SendReceiveBinary($"albumart \"{uri}\"", 2);
 		if (response.IsError) {
-			Console.WriteLine($"Albumart \"{uri}\" 0 returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Albumart \"{uri}\" 0 returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return [];
 		}
 		return response.Binary;
@@ -347,7 +348,7 @@ public class Mpd {
 	public byte[] ReadPicture(string uri) {
 		var response = _coms.SendReceiveBinary($"readpicture \"{uri}\"", 3);
 		if (response.IsError) {
-			Console.WriteLine($"ReadPicture \"{uri}\" 0 returned error: {response.ErrorMessage}");
+			_logger.LogDebug("ReadPicture \"{uri}\" 0 returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return [];
 		}
 		return response.Binary;
@@ -359,7 +360,7 @@ public class Mpd {
 		_coms.Send("playlist");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"PlayList returned error: {response.ErrorMessage}");
+			_logger.LogDebug("PlayList returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return null;
 		}
 		var playListModel = new PlayListModel(response.Binary);
@@ -370,7 +371,7 @@ public class Mpd {
 		_coms.Send($"playlistid {songId}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"PlayListId returned error: {response.ErrorMessage}");
+			_logger.LogDebug("PlayListId returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return null;
 		}
 		var currentSongModel = new CurrentSongModel(response.Binary);
@@ -381,7 +382,7 @@ public class Mpd {
 		_coms.Send(songId != null ? $"playlistinfo {songId}" : $"playlistinfo");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"PlayListId returned error: {response.ErrorMessage}");
+			_logger.LogDebug("PlayListId returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return null;
 		}
 		var playListInfoModel = new PlayListInfoModel(response.Binary);
@@ -392,7 +393,7 @@ public class Mpd {
 		_coms.Send($"playlistinfo {startSongId}:{endSongId}");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"PlayListId returned error: {response.ErrorMessage}");
+			_logger.LogDebug("PlayListId returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return null;
 		}
 		var playListInfoModel = new PlayListInfoModel(response.Binary);
@@ -403,7 +404,7 @@ public class Mpd {
 		_coms.Send($"lsinfo \"{uri}\"");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"LsInfo {uri} returned error: {response.ErrorMessage}");
+			_logger.LogDebug("LsInfo {uri} returned error: {ErrorMessage}", uri, response.ErrorMessage);
 			return null;
 		}
 		var listInfoModel = new ListInfoModel(response.Binary);
@@ -419,7 +420,7 @@ public class Mpd {
 		_coms.Send("status");
 		var response = _coms.ReceiveRaw();
 		if (response.IsError) {
-			Console.WriteLine($"Status returned error: {response.ErrorMessage}");
+			_logger.LogDebug("Status returned error: {response.ErrorMessage}", response.ErrorMessage);
 			return null;
 		}
 		var status = new StatusModel(response.Binary);

@@ -19,8 +19,8 @@ public partial class QueueBuilder : Window {
 	private string _currentUri;
 	private ListInfoModel? _lsInfo;
 	private PlayListInfoModel? _playListInfo;
-	public QueueBuilder() {
-		_mpd = new Mpd();
+	public QueueBuilder(Mpd mpd) {
+		_mpd = mpd;
 		_ = _mpd.Connect();
 		InitializeComponent();
 		_currentUri = "/Organised/Ren";

@@ -61,7 +61,7 @@ public class ListInfoModel {
 		public FormatModel Format { get; set; }   // 48000:24:2
 		public string Title { get; set; }         // Hi Ren
 		public string Artist { get; set; }        // Ren
-		public int Date { get; set; }             // 2022
+		public string Date { get; set; }             // 2022
 		public int Time { get; set; }             // 515
 		public double Duration { get; set; }      // 515.000
 
@@ -94,8 +94,7 @@ public class ListInfoModel {
 							.Trim();
 						break;
 					case "date":
-						Date = int.Parse(parts[1]
-							.Trim());
+						Date = parts[1];
 						break;
 					case "time":
 						Time = int.Parse(parts[1]

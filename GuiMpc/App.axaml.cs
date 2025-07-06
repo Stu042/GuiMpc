@@ -8,13 +8,12 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MpdSharp;
 
 
 namespace GuiMpc;
 
 
-public partial class App : Application {
+public class App : Application {
 	public override void Initialize() {
 		AvaloniaXamlLoader.Load(this);
 	}
@@ -56,9 +55,10 @@ public static class InitEnv {
 			builder.SetMinimumLevel(LogLevel.Error);
 #endif
 			})
-			.AddSingleton<Mpd>(s => new Mpd())
 			.AddSingleton<Config>(s => settings)
 			.AddTransient<MpdWrapper>();
+		MpdSharp.Init.Services(collection);
+		collection.BuildServiceProvider();
 	}
 
 
@@ -74,24 +74,29 @@ public static class InitEnv {
 			HostName = serverStr,
 			Port = port
 		};
-		if (args.Length <= 1)
+		if (args.Length <= 1) {
 			return settings;
-		switch (args[1]
-					.ToLower()) {
-			case "--server":
-			case "-s":
-				settings.HostName = args[2];
-				break;
-			case "--port":
-			case "-p":
-				settings.Port = int.Parse(args[2]);
-				break;
-			default:
-				Console.WriteLine("Run GuiMpc ");
-				if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lifetime) {
-					lifetime.Shutdown();
-				}
-				break;
+		}
+		for (var i = 0; i < args.Length; i++) {
+			switch (args[i]
+						.ToLower()) {
+				case "--server":
+				case "-s":
+					i++;
+					settings.HostName = args[i];
+					break;
+				case "--port":
+				case "-p":
+					i++;
+					settings.Port = int.Parse(args[i]);
+					break;
+				default:
+					Console.WriteLine($"{args[0]} help:\n --port -p n Where n is the port MPD is using.\n --server -s ip Where ip is the IP address or hostname MPD is running on.\nguimpc is written by Stuart Geddes and is licensed under the GPL.");
+					if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lifetime) {
+						lifetime.Shutdown();
+					}
+					break;
+			}
 		}
 		return settings;
 	}

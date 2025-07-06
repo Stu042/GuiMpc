@@ -1,12 +1,14 @@
 using System.Net.Sockets;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using MpdSharp.Models;
 
 
 namespace MpdSharp;
 
 
-internal class Coms {
+public class Coms {
+	private readonly ILogger<Coms> _logger;
 	private TcpClient _socket;
 	private int _portNo;
 	private string _serverIp;
@@ -14,7 +16,8 @@ internal class Coms {
 	private const string DefaultServerHostName = "127.0.0.1";
 	private const int DefaultServerPort = 6600;
 	private const int BufferSize = 4096;
-	public Coms() {
+	public Coms(ILogger<Coms>  logger) {
+		_logger = logger;
 		_socket = new TcpClient();
 	}
 
@@ -29,11 +32,11 @@ internal class Coms {
 			.SequenceEqual(okResponseBytes);
 		var response = Encoding.UTF8.GetString(buffer);
 		if (!isOkay) {
-			Console.WriteLine($"Connection failed, invalid response, {response}");
+			_logger.LogError("Connection failed, invalid response, {response}", response);
 			return false;
 		}
 		_version = response[7..^1];//"OK MPD 0.24.0"
-		Console.WriteLine($"Connected to MPD version {_version}");
+		_logger.LogInformation("Connected to MPD version {_version}", _version);
 		return true;
 	}
 	private void ReConnect() {
@@ -56,7 +59,7 @@ internal class Coms {
 		} catch (Exception e) {
 			Console.WriteLine(e);
 		}
-		Console.WriteLine($"Socket client sent: {message}");
+		_logger.LogDebug("Socket client sent: {message}", message);
 	}
 
 	/// <summary>Retrieves a response, checks for OK at the end and returns the raw bytes.</summary>
@@ -70,7 +73,7 @@ internal class Coms {
 				bob.AddRange(buffer[..bytesRead]);
 			} while (bytesRead == BufferSize);
 		} catch (Exception e) {
-			Console.WriteLine(e);
+			_logger.LogError("Error in response: {e.Message}", e.Message);
 			return new BinaryResponseModel {// response was not okay but unable to find error message, return unknown error
 				IsError = true,
 				Binary = bob.ToArray(),
