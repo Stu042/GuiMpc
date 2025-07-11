@@ -19,6 +19,8 @@ public class CurrentSongModel {
 	public int Id { get; set; }                        // 290
 
 	public CurrentSongModel(byte[] response) {
+		File = string.Empty;
+		Format = new FormatModel();
 		var parsedResponse = ResponseHelper.ResponseToDictionary(response);
 		Parse(parsedResponse);
 	}
@@ -26,7 +28,7 @@ public class CurrentSongModel {
 		File = string.Empty;
 		LastModified = DateTime.MinValue;
 		Added = DateTime.MinValue;
-		Format = new FormatModel(string.Empty);
+		Format = new FormatModel();
 		while (reader.ReadLine() is { } line) {
 			var parts = line.Split(':', 2);
 			switch (parts[0]
@@ -85,7 +87,7 @@ public class CurrentSongModel {
 		File = crazyDict.Value("file");
 		if (File == string.Empty) {
 			File = "Error";
-			Format = new FormatModel(string.Empty);
+			Format = new FormatModel();
 			return;
 		}
 		if (DateTime.TryParse(crazyDict.Value("last-modified"), out var lastModified)) {

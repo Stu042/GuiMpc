@@ -66,6 +66,11 @@ public class ListInfoModel {
 		public double Duration { get; set; }      // 515.000
 
 		public FileModel(StreamReader reader) {
+			File = string.Empty;
+			Format = new FormatModel();
+			Title = string.Empty;
+			Artist = string.Empty;
+			Date = string.Empty;
 			var line = reader.ReadLine();
 			while (line != null) {
 				var parts = line.Split(':', 2);

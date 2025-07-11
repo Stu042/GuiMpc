@@ -5,7 +5,7 @@ namespace MpdSharp;
 
 
 public static class ResponseHelper {
-	public static CrazyDict ResponseToDictionary(string response, int? lineCount = null) {
+	public static CrazyDict ResponseToCrazyDict(string response, int? lineCount = null) {
 		var cd = new CrazyDict();
 		if (string.IsNullOrEmpty(response)) {
 			return cd;
@@ -27,7 +27,7 @@ public static class ResponseHelper {
 
 	public static CrazyDict ResponseToDictionary(byte[] response, int? lineCount = null) {
 		var str = Encoding.UTF8.GetString(response);
-		var cd = ResponseToDictionary(str, lineCount);
+		var cd = ResponseToCrazyDict(str, lineCount);
 		return cd;
 	}
 }
@@ -35,7 +35,7 @@ public static class ResponseHelper {
 
 
 public class CrazyDict {
-	private Dictionary<string, List<string>> _dict;
+	private readonly Dictionary<string, List<string>> _dict;
 
 	public CrazyDict() {
 		_dict = new Dictionary<string, List<string>>();
