@@ -99,9 +99,10 @@
                     <StackPanel Orientation="Horizontal">
                         <Label Name="FilesystemLabel">Filesystem</Label>
                         <RelativePanel Name="BrowserIcons" HorizontalAlignment="Right">
-                            <Button Name="GoToRoot" >Root</Button>
-                            <Button Name="Add" RelativePanel.RightOf="GoToRoot">Add</Button>
-                            <Button Name="AddAtEnd" RelativePanel.RightOf="Add">Add Last</Button>
+                            <Button Name="GoToRoot" Click="GoToRoot_OnClick">Root</Button>
+                            <Button Name="AddBefore" RelativePanel.RightOf="GoToRoot" Click="FileAddBefore_OnClick">Add Before</Button>
+                            <Button Name="AddAfter" RelativePanel.RightOf="AddBefore" Click="FileAddAfter_OnClick">Add After</Button>
+                            <Button Name="AddAtEnd" RelativePanel.RightOf="AddAfter" Click="AddAtEnd_OnClick">Add Last</Button>
                         </RelativePanel>
                     </StackPanel>
                     <ListBox Name="FileBrowser" PointerReleased="FileBrowser_OnPointerReleased" Margin="2 0 2 0" ScrollViewer.AllowAutoHide="True" Height="175"></ListBox>
@@ -112,16 +113,16 @@
                     <StackPanel Orientation="Horizontal">
                         <Label Name="PlayQueueLabel">Play List</Label>
                         <RelativePanel Name="QueueIcons" HorizontalAlignment="Right">
-                            <Button Name="ClearQueue">Clear</Button>
-                            <Button Name="Remove" RelativePanel.RightOf="ClearQueue">Rem</Button>
-                            <Button Name="Shuffle" RelativePanel.RightOf="Remove">Shuffle</Button>
+                            <Button Name="ClearQueue" Click="ClearQueue_OnClick">Clear</Button>
+                            <Button Name="Remove" RelativePanel.RightOf="ClearQueue" Click="Remove_OnClick">Rem</Button>
+                            <Button Name="Shuffle" RelativePanel.RightOf="Remove" Click="Shuffle_OnClick">Shuffle</Button>
                         </RelativePanel>
                     </StackPanel>
                     <ListBox Name="PlayQueue" Margin="2 0 2 0" SelectionMode="Multiple" Height="175"></ListBox>
                 </StackPanel>
             </StackPanel>
 
-
         </StackPanel>
+
     </StackPanel>
 </Window>

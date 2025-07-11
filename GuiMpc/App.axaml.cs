@@ -48,7 +48,11 @@ public static class InitEnv {
 		var settings = GetConfig();
 		collection
 			.AddLogging(builder => {
-				builder.AddConsole();
+				builder.AddSimpleConsole(options => {
+						options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+						options.SingleLine = true;
+					}
+				);
 #if DEBUG
 				builder.SetMinimumLevel(LogLevel.Debug);
 #else

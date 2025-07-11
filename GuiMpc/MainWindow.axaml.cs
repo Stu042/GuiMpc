@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using Avalonia;
@@ -13,7 +11,6 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using Microsoft.Extensions.Logging;
-using MpdSharp;
 using MpdSharp.Models;
 
 
@@ -37,10 +34,7 @@ public partial class MainWindow : Window {
 		_mpdWrapper = mpdWrapper;
 		_logger = logger;
 		_mpdWrapper.Connect();
-		PopulatePlayList();
-		Timer_Tick(this, EventArgs.Empty);
-		UpdateCurrentSong();
-		UpdateButtons();
+		ShowPlayerView();
 		_viewUpdateTimer = new DispatcherTimer {
 			Interval = TimeSpan.FromSeconds(1)
 		};
@@ -154,6 +148,10 @@ public partial class MainWindow : Window {
 	}
 
 	private void ShowPlayerView() {
+		PopulatePlayList();
+		Timer_Tick(this, EventArgs.Empty);
+		UpdateCurrentSong(fullUpdate: true);
+		UpdateButtons();
 		PlayerView.IsEnabled = true;
 		PlayerView.IsVisible = true;
 		PlaylistView.IsEnabled = false;
@@ -171,29 +169,35 @@ public partial class MainWindow : Window {
 
 	// Volume position slider
 	private void Volume_OnValueChanged(object? sender, RangeBaseValueChangedEventArgs e) {
-		_mpdWrapper.SetVol((int)e.NewValue);
+		var vol = (int)e.NewValue;
+		_mpdWrapper.SetVol(vol);
+		Volume.Value = vol;
 	}
 
 	private void Volume_OnPointerWheelChanged(object? sender, PointerWheelEventArgs e) {
-		if (e.Handled) {
+		if (e.Handled || (e.Delta.Y > 0 && Volume.Value >= 100.0) || (e.Delta.Y < 0 && Volume.Value <= 0.0)) {
 			return;
 		}
 		var vol = _mpdWrapper.GetVol();
-		vol += e.Delta.Y * 2;
-		_mpdWrapper.SetVol((int)vol);
+		vol += (int)(e.Delta.Y * 2);
+		_mpdWrapper.SetVol(vol);
+		Volume.Value = vol;
 	}
 
-	// Auto app update
+	// UI state update
 	private void Timer_Tick(object? sender, EventArgs e) {
-		_mpdWrapper.UpdateMpdState();
-		var vol = _mpdWrapper.GetVol();
-		Volume.Value = vol;
-		var pos = _mpdWrapper.GetSongPos();
-		SongPosition.Value = pos;
+		if (PlayerView.IsEnabled) {
+			var vol = _mpdWrapper.GetVol();
+			Volume.Value = vol;
+			var pos = _mpdWrapper.GetSongPos();
+			SongPosition.Value = pos;
+		}
+		if (PlaylistView.IsEnabled) { }
 	}
 
 
 	// Playlist
+
 	private void PopulatePlayList() {
 		var songs = _mpdWrapper.GetPlayList();
 		var songsListItems = songs.Select(song => new ListBoxItem {
@@ -219,19 +223,20 @@ public partial class MainWindow : Window {
 		SongTitle.Text = selectedText;
 	}
 
-	private void UpdateCurrentSong() {
+	private void UpdateCurrentSong(bool fullUpdate = false) {
 		var curSong = _mpdWrapper.GetCurrentSongFullText();
 		if (curSong == null) {
 			return;
 		}
-		if (string.Equals(SongTitle.Text, curSong)) {// new song?
+		if (!fullUpdate && string.Equals(SongTitle.Text, curSong)) {// new song?
 			return;
 		}
 		SongTitle.Text = curSong;
-		var selectedItem = PlaylistContainer.Items.FirstOrDefault(i => string.Equals((i as ListBoxItem)?.Content, curSong));
+		var selectedItem = PlaylistContainer.Items.FirstOrDefault(i => Equals((i as ListBoxItem)?.Content, curSong));
 		PlaylistContainer.SelectedItem = selectedItem;
 		var imageBytes = _mpdWrapper.GetSongArt();
 		if (imageBytes.Length <= 0) {
+			AlbumArt.Source = null;
 			return;
 		}
 		using var stream = new MemoryStream(imageBytes);
@@ -263,27 +268,116 @@ public partial class MainWindow : Window {
 
 	private void PlayQueuePopulate() {
 		var songs = _mpdWrapper.GetPlayQueue();
+		var curSong = _mpdWrapper.GetCurrentSong();
 		PlayQueue.Items.Clear();
 		foreach (var song in songs) {
 			PlayQueue.Items.Add(song);
+			if (song.Id == curSong?.Id) {
+				PlayQueue.SelectedItem = song;
+			}
 		}
 	}
 
 
+	private DateTime _fileBrowserLastClick = DateTime.MinValue;
 	private void FileBrowser_OnPointerReleased(object? sender, PointerReleasedEventArgs e) {
 		if (e.Handled || FileBrowser.SelectedItems == null || FileBrowser.SelectedItems.Count <= 0) {
 			return;
 		}
-		if (FileBrowser.SelectedItems[0] is not FileModel selectedText) {
+		var now = DateTime.Now;
+		if (_fileBrowserLastClick == DateTime.MinValue || now - _fileBrowserLastClick > TimeSpan.FromSeconds(2)) {
+			_fileBrowserLastClick = now;
+			e.Handled = true;
+			return;
+		}
+		if (FileBrowser.SelectedItems[0] is not FileModel selectedFileModel) {
 			_currentUri = string.Empty;
 		} else {
-			if (string.Equals(selectedText.Path, "..")) {
+			if (_mpdWrapper.IsFile(_currentUri, selectedFileModel.Name)) {
+				QueueAddSongToEnd(selectedFileModel);
+				_logger.LogInformation("Add at end..");
+			} else if (string.Equals(selectedFileModel.Path, "..")) {
 				var lastIndex = _currentUri.LastIndexOf('/');
 				_currentUri = lastIndex >= 0 ? _currentUri[..lastIndex] : string.Empty;
 			} else {
-				_currentUri = selectedText.Path;
+				_currentUri = selectedFileModel.Path;
 			}
 		}
 		FileBrowserPopulate();
+		_fileBrowserLastClick = DateTime.MinValue;
+	}
+	private void FileAddAfter_OnClick(object? sender, RoutedEventArgs e) {
+		if (e.Handled || FileBrowser.SelectedItems == null || FileBrowser.SelectedItems.Count <= 0) {
+			return;
+		}
+		if (FileBrowser.SelectedItems[0] is FileModel selectedFileModel) {
+			if (PlayQueue.SelectedItems?.Count >= 1) {
+				var songAdded = _mpdWrapper.QueueAddSongAfter(selectedFileModel.Path, 0);
+				if (songAdded) {
+					PlayQueuePopulate();
+				}
+				return;
+			}
+			QueueAddSongToEnd(selectedFileModel);
+			PlayQueuePopulate();
+		}
+	}
+
+	private void QueueAddSongToEnd(FileModel selectedFileModel) {
+		var songAdded = _mpdWrapper.QueueAddSongToEnd(selectedFileModel.Path);
+		if (songAdded) {
+			PlayQueuePopulate();
+		}
+	}
+	private void AddAtEnd_OnClick(object? sender, RoutedEventArgs e) {
+		if (e.Handled || FileBrowser.SelectedItems == null || FileBrowser.SelectedItems.Count <= 0) {
+			return;
+		}
+		if (FileBrowser.SelectedItems[0] is FileModel selectedFileModel) {
+			QueueAddSongToEnd(selectedFileModel);
+		}
+	}
+	private void FileAddBefore_OnClick(object? sender, RoutedEventArgs e) {
+		if (e.Handled || FileBrowser.SelectedItems == null || FileBrowser.SelectedItems.Count <= 0) {
+			return;
+		}
+		if (FileBrowser.SelectedItems[0] is FileModel selectedFileModel) {
+			if (PlayQueue.SelectedItems?.Count >= 1) {
+				var songAdded = _mpdWrapper.QueueAddSongBefore(selectedFileModel.Path, 0);
+				if (songAdded) {
+					PlayQueuePopulate();
+				}
+				return;
+			}
+			QueueAddSongToEnd(selectedFileModel);
+			PlayQueuePopulate();
+		}
+	}
+	private void GoToRoot_OnClick(object? sender, RoutedEventArgs e) {
+		if (e.Handled) {
+			return;
+		}
+		_currentUri = string.Empty;
+		FileBrowserPopulate();
+	}
+	private void ClearQueue_OnClick(object? sender, RoutedEventArgs e) {
+		_mpdWrapper.QueueClear();
+		PlayQueuePopulate();
+	}
+	private void Remove_OnClick(object? sender, RoutedEventArgs e) {
+		if (e.Handled || PlayQueue.SelectedItems?.Count <= 0) {
+			return;
+		}
+		if (PlayQueue.SelectedItems == null) {
+			return;
+		}
+		foreach (SongModel song in PlayQueue.SelectedItems) {
+			_mpdWrapper.QueueRemove(song.Id);
+		}
+		PlayQueuePopulate();
+	}
+	private void Shuffle_OnClick(object? sender, RoutedEventArgs e) {
+		_mpdWrapper.QueueShuffle();
+		PlayQueuePopulate();
 	}
 }

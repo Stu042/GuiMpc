@@ -16,26 +16,27 @@ public class Coms {
 	private const string DefaultServerHostName = "127.0.0.1";
 	private const int DefaultServerPort = 6600;
 	private const int BufferSize = 4096;
-	public Coms(ILogger<Coms>  logger) {
+	public Coms(ILogger<Coms> logger) {
 		_logger = logger;
 		_socket = new TcpClient();
 	}
 
 	internal bool Connect(string? serverIp, int? portNo) {
+		var okResponseBytes = "OK MPD "u8.ToArray();
 		_serverIp = serverIp ?? DefaultServerHostName;
-		_portNo = portNo ??  DefaultServerPort;
+		_portNo = portNo ?? DefaultServerPort;
 		_socket = new TcpClient(_serverIp, _portNo);
-		var okResponseBytes = "OK MPD"u8.ToArray();
 		var buffer = new byte[1024];
 		_ = _socket.Client.Receive(buffer, SocketFlags.None);
-		var isOkay = buffer[^okResponseBytes.Length..]
+		var isOkay = buffer[..okResponseBytes.Length]
 			.SequenceEqual(okResponseBytes);
 		var response = Encoding.UTF8.GetString(buffer);
 		if (!isOkay) {
 			_logger.LogError("Connection failed, invalid response, {response}", response);
 			return false;
 		}
-		_version = response[7..^1];//"OK MPD 0.24.0"
+		var index = response.IndexOf('\n');
+		_version = response[okResponseBytes.Length..index];//"OK MPD 0.24.0"
 		_logger.LogInformation("Connected to MPD version {_version}", _version);
 		return true;
 	}
@@ -177,7 +178,7 @@ public class Coms {
 	private static int ErrorStartIndex(byte[] response) {
 		var errorResponse = "ACK "u8.ToArray();
 		var index = 0;
-		for(var i = 0; i < response.Length; i++) {
+		for (var i = 0; i < response.Length; i++) {
 			if (response[i] == errorResponse[index]) {
 				var startI = i;
 				do {
@@ -194,5 +195,3 @@ public class Coms {
 		return -1;
 	}
 }
-
-
