@@ -6,29 +6,28 @@ public class CurrentSongModel {
 	public DateTime LastModified { get; set; }// 2025-05-29T21:17:37Z
 	public DateTime Added { get; set; }       // 2025-05-29T21:17:37Z
 	public FormatModel Format { get; set; }   // 44100:16:2
-	public string? Title { get; set; }        // Young Lust
-	public string? Artist { get; set; }       // Discovery Artist: Pink Floyd
-	public string? Album { get; set; }        // Discovery Artist: The Wall
-	public string? Date { get; set; }         // 2011
-	public string? Genre { get; set; }        // Symphonic Rock
-	public string? Track { get; set; }        // 6
-	public string? Time { get; set; }         // 210
-	public double Duration { get; set; }      // 209.973
-	public string? Disc { get; set; }         // 9
-	public int Pos { get; set; }              // 289
-	public int Id { get; set; }               // 290
+	public string? Title { get; set; }                 // Young Lust
+	public string? Artist { get; set; }                // Discovery Artist: Pink Floyd
+	public string? Album { get; set; }                 // Discovery Artist: The Wall
+	public string? Date { get; set; }                  // 2011
+	public string? Genre { get; set; }                 // Symphonic Rock
+	public string? Track { get; set; }                 // 6
+	public string? Time { get; set; }                  // 210
+	public double Duration { get; set; }               // 209.973
+	public string? Disc { get; set; }                  // 9
+	public int Pos { get; set; }                       // 289
+	public int Id { get; set; }                        // 290
 
-	public CurrentSongModel(string response) {
-		var parsedResponse = ResponseHelper.ResponseToDictionary(response);
-		Parse(parsedResponse);
-	}
 	public CurrentSongModel(byte[] response) {
 		var parsedResponse = ResponseHelper.ResponseToDictionary(response);
 		Parse(parsedResponse);
 	}
 	public CurrentSongModel(StreamReader reader) {
-		string? line;
-		while ((line = reader.ReadLine()) != null) {
+		File = string.Empty;
+		LastModified = DateTime.MinValue;
+		Added = DateTime.MinValue;
+		Format = new FormatModel(string.Empty);
+		while (reader.ReadLine() is { } line) {
 			var parts = line.Split(':', 2);
 			switch (parts[0]
 						.ToLowerInvariant()

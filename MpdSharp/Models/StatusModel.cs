@@ -16,7 +16,7 @@ public class StatusModel {
 	public bool Consume { get; set; }          // consume: 0
 
 	/// <summary>The name of the current partition (see Partition commands)</summary>
-	public string Partition { get; set; }      // partition: default
+	public string? Partition { get; set; }      // partition: default
 
 	/// <summary>31-bit unsigned integer, the playlist version number</summary>
 	public int Playlist { get; set; }          // playlist: 3
@@ -45,7 +45,7 @@ public class StatusModel {
 	/// <summary>Total time elapsed within the current song in seconds, but with higher resolution.</summary>
 	public double Elapsed { get; set; }        // elapsed: 20.872
 
-	/// <summary>instantaneous bitrate in kbps</summary>
+	/// <summary>Instantaneous bitrate in kbps</summary>
 	public int BitRate { get; set; }           // bitrate: 1128
 
 	/// <summary>Duration of the current song in seconds.</summary>
@@ -54,25 +54,17 @@ public class StatusModel {
 	/// <summary>The format emitted by the decoder plugin during playback, format: samplerate:bits:channels.</summary>
 	public FormatModel Audio { get; set; }     // audio: 44100:16:2
 
-	/// <summary>playlist song number of the next song to be played</summary>
+	/// <summary>Playlist song number of the next song to be played</summary>
 	public int NextSong { get; set; }          // nextsong: 2
 
-	/// <summary>playlist songid of the next song to be played</summary>
+	/// <summary>Playlist songid of the next song to be played</summary>
 	public int NextSongId { get; set; }        // nextsongid: 3
 
 	//xfade: crossfade in seconds (see Cross-Fading)
 	//mixrampdelay: mixrampdelay in seconds
 
-	public StatusModel(string response) {
-		var parsedResponse = ResponseHelper.ResponseToDictionary(response);
-		Parse(parsedResponse);
-	}
 	public StatusModel(byte[] response) {
-		var parsedResponse = ResponseHelper.ResponseToDictionary(response);
-		Parse(parsedResponse);
-	}
-
-	private void Parse(CrazyDict crazyDict) {
+		var crazyDict = ResponseHelper.ResponseToDictionary(response);
 		//Volume = crazyDict.IntVal("volume") ?? 0;
 		Repeat = crazyDict.BoolVal("repeat") ?? false;
 		Random = crazyDict.BoolVal("random") ?? false;

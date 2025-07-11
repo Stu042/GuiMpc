@@ -19,6 +19,7 @@ public class Coms {
 	public Coms(ILogger<Coms> logger) {
 		_logger = logger;
 		_socket = new TcpClient();
+		_serverIp = string.Empty;
 	}
 
 	internal bool Connect(string? serverIp, int? portNo) {
